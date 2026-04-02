@@ -22,7 +22,7 @@ impl Project {
     } 
 
     fn summary(&self) -> String {
-        format!("{} ({} tasks)", self.name, self.task_count())
+        format!("[{}] {} ({} tasks)", self.id, self.name, self.task_count())
     }
 
 }
@@ -68,29 +68,34 @@ impl Task {
 }
 
 
-fn dispatch(command: &str, args: &[String]) {
+fn dispatch(
+    command: &str,
+    args: &[String],
+    project: &Project) {
     if command == "new" {
         println!("[new] Creating project...");
     } else if command == "ls" {
-        println!("[list] all projects")
+        println!("{}", project.summary());
     } else if command == "set" {
         println!("[set] set active project")
     } else if command == "delete" {
         println!("[delete] current project")
 
     } else if command == "task" {
-        println!("[task] Running task command...")
+        let second_command = &args[0];
+        if second_command == "ls" {
+            for t in &project.tasks {
+                // print summary with two pace indentation
+                println!("  {}", t.summary())
+            }
+        }
+        else  {
+            println!("[Task {second_command}] Not yet implemented");
+        }
     } else {
         println!("Unknown command: {command}")
     }
 
-    println!("Extra args: {}", args.len());
-
-}
-
-
-fn print_command(command: &str) {
-    println!("Dispatching: {command}")
 }
 
 fn main() {
@@ -102,33 +107,13 @@ fn main() {
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
-
-    println!("project summary: {}", project.summary());
-
-    for t in &project.tasks{
-        println!("{}", t.summary());
-    }
-
     let env_args: Vec<String> = env::args().collect();
 
     if env_args.len() > 1 {
         println!("rtodo v0.1.0 — your local task manager");
-
-        // deep copy form env args
         let command: &str = &env_args[1];
         let args: &[String]  = &env_args[2..];
-        // command is move to the print_command, can't access after the exec
-        // of the fn
-        // create other copy of command
-        print_command(command);
-
-        // iterate for all arguments
-        for (i, arg) in env_args[1.. ].iter().enumerate() {
-            println!("arg[{i}]: {arg}");
-        }
-        dispatch(command, args);
-
-        println!("You typed: {}", env_args[1]);
+        dispatch(command, args, &project);
 
     } else {
         println!("Usage: rtodo <command>");
