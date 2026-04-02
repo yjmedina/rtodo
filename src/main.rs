@@ -22,7 +22,7 @@ use std::env;
 // }
 
 
-fn dispatch(command: &str) {
+fn dispatch(command: &str, args: &[String]) {
     if command == "new" {
         println!("[new] Creating project...");
     } else if command == "ls" {
@@ -37,6 +37,8 @@ fn dispatch(command: &str) {
     } else {
         println!("Unknown command: {command}")
     }
+
+    println!("Extra args: {}", args.len());
 
 }
 
@@ -53,6 +55,7 @@ fn main() {
 
         // deep copy form env args
         let command: &str = &env_args[1];
+        let args: &[String]  = &env_args[2..];
         // command is move to the print_command, can't access after the exec
         // of the fn
         // create other copy of command
@@ -62,7 +65,7 @@ fn main() {
         for (i, arg) in env_args[1.. ].iter().enumerate() {
             println!("arg[{i}]: {arg}");
         }
-        dispatch(command);
+        dispatch(command, args);
 
         println!("You typed: {}", env_args[1]);
 
