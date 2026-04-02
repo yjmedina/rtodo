@@ -22,6 +22,14 @@ use std::env;
 // }
 
 
+#[derive(Debug)] // what the hell is this?
+struct Task {
+    id: u32,
+    description: String,
+    priority: u8
+
+}
+
 fn dispatch(command: &str, args: &[String]) {
     if command == "new" {
         println!("[new] Creating project...");
@@ -48,6 +56,24 @@ fn print_command(command: &str) {
 }
 
 fn main() {
+    let task_1 = Task{
+        id: 0,
+        description: String::from("Learn Rust"),
+        priority: 2,
+    };
+
+    let task_2= Task{
+        id: 1,
+        description: String::from("Use Rust to build my cli"),
+        priority: 3,
+    };
+
+
+    println!("{:#?}", task_1);
+    println!("{:#?}", task_2);
+    println!("task [{}]({}): {}", task_1.id, task_1.priority, task_1.description);
+
+
     let env_args: Vec<String> = env::args().collect();
 
     if env_args.len() > 1 {
