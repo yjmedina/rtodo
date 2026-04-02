@@ -1,6 +1,26 @@
 use std::env;
 
 
+const LOW_PRIORITY: u8 = 1;
+const MEDIUM_PRIORITY: u8 = 2;
+const HIGH_PRIORITY: u8 = 3;
+
+
+
+// static lifetime, the string will live for the entire program
+fn get_priority_label(priority: u8) -> &'static str {
+    if priority == LOW_PRIORITY {
+        "low" 
+    } else if priority == MEDIUM_PRIORITY {
+        "medium"
+    } else if priority == HIGH_PRIORITY{
+        "high"
+    } else {
+        "unknown"
+    }
+
+}
+
 fn main() {
     println!("rtodo - v0.1.0 - your local task manager");
     let env_args: Vec<String> = env::args().collect();
@@ -27,4 +47,10 @@ fn main() {
     } else {
         println!("Usage: rtodo <command>");
     }
+
+
+    println!("Priority 1: {}", get_priority_label(LOW_PRIORITY));
+    println!("Priority 2: {}", get_priority_label(MEDIUM_PRIORITY));
+    println!("Priority 3: {}", get_priority_label(HIGH_PRIORITY));
+    println!("Priority 99: {}", get_priority_label(99));
 }
