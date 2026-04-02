@@ -1,10 +1,5 @@
 use std::env;
 
-
-const LOW_PRIORITY: u8 = 1;
-const MEDIUM_PRIORITY: u8 = 2;
-const HIGH_PRIORITY: u8 = 3;
-
 #[derive(Debug)]
 struct Project {
     id: u32,
@@ -49,7 +44,6 @@ enum Status{
     Completed
 }
 
-
 impl Status {
     fn label(&self) -> String {
         let label = match self {
@@ -71,44 +65,49 @@ impl Status {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum Priority {
+    Low,
+    Medium,
+    High
+}
+
+impl Priority {
+    fn label(&self) -> String {
+        let label = match self {
+            Priority::Low => "low",
+            Priority::Medium => "medium",
+            Priority::High => "high",
+        };
+        String::from(label)
+    }
+}
+
+
 // Impl the debug trait, which allows to 
 // print using {:#?} while using println!
 #[derive(Debug)] 
 struct Task {
     id: u32,
     description: String,
-    priority: u8,
+    priority: Priority,
     status: Status,
 
 }
 
 impl Task {
-    fn new(id: u32, description: String, priority: u8, status: Option<Status>)  -> Self{
-
+    fn new(id: u32, description: String, priority: Priority , status: Option<Status>)  -> Self{
         let status = if let Some(s) = status {s} else {Status::New};
         // or  more idiomatic
         // let status = status.unwrap_or(Status::New)
         Task{id, description, priority, status: status}
     }
-
-    fn priority_label(&self) -> &'static str{
-        if self.priority == LOW_PRIORITY {
-                "low" 
-            } else if self.priority == MEDIUM_PRIORITY {
-                "medium"
-            } else if self.priority == HIGH_PRIORITY{
-                "high"
-            } else {
-                "unknown"
-            }
-    }
-
     fn summary(&self) -> String {
         format!(
             "[{}] {} ({}) [{}]", 
             self.id,
             self.description,
-            self.priority_label(),
+            self.priority.label(),
             self.status.label(),
         )
 
@@ -151,15 +150,16 @@ fn main() {
 
     let mut project = Project::new(0, String::from("Build rtodo CLI"));
 
-    let task_1 = Task::new(0, String::from("Learn Rust"), 2, Some(Status::Completed));
-    let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3, Some(Status::InProgress));
+    let task_1 = Task::new(0, String::from("Learn Rust"), Priority::Medium, Some(Status::Completed));
+    let task_2 = Task::new(1, String::from("Implement CLI using rust"), Priority::High, Some(Status::InProgress));
+    let task_3 = Task::new(2, String::from("Be a millionare"), Priority::Low, None);
 
     assert_eq!(task_1.status.sort_order(), 2);
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
-    project.active_task_id = Some(1);
-    project.active_task_id = Some(3);
+    project.tasks.push(task_3);
+    project.active_task_id = Some(2);
 
     if let Some(task) = project.active_task() {
         println!("Current active task: {}", task.summary())
