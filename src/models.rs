@@ -14,6 +14,25 @@ impl Project {
         Project { id, name, tasks: Vec::new(), active_task_id: None}
     }
 
+    pub fn add_task(&mut self, description: String, priority: Priority) {
+        let id = self.tasks.len() as u32;
+        let task = Task::new(id, description, priority,  Some(Status::New));
+        self.tasks.push(task);
+    }
+
+    pub fn delete_task(&mut self, id: u32) -> Option<Task> {
+        for (i, task ) in self.tasks.iter().enumerate() {
+            if task.id == id {
+                let last_item = self.tasks.len() - 1;
+                self.tasks.swap(i, last_item);
+                let task =  self.tasks.pop();
+                return task
+            }
+        }
+
+        None
+   }
+
     pub fn task_count(&self) -> usize {
         self.tasks.len()
     } 
