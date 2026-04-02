@@ -21,16 +21,28 @@ impl Project {
     }
 
     pub fn delete_task(&mut self, id: u32) -> Option<Task> {
-        for (i, task ) in self.tasks.iter().enumerate() {
-            if task.id == id {
-                let last_item = self.tasks.len() - 1;
-                self.tasks.swap(i, last_item);
-                let task =  self.tasks.pop();
-                return task
-            }
+        // iter finds the position of the index Option<usize>
+        let pos = self.tasks.iter().position(|t | t.id == id);
+
+        // if found, then swap it with the last element and return it
+        if let Some(i) = pos {
+            let task = self.tasks.swap_remove(i);
+            Some(task)
+        } else {
+            None
         }
 
-        None
+
+        // for (i, task ) in self.tasks.iter().enumerate() {
+        //     if task.id == id {
+        //         let last_item = self.tasks.len() - 1;
+        //         self.tasks.swap(i, last_item);
+        //         let task =  self.tasks.pop();
+        //         return task
+        //     }
+        // }
+
+        // None
    }
 
     pub fn task_count(&self) -> usize {
@@ -43,13 +55,19 @@ impl Project {
 
     pub fn active_task(&self) -> Option<&Task> {
         if let Some(i) = self.active_task_id {
-            for t in &self.tasks {
-                if t.id == i {
-                    return Some(t)
-                }
-            }
+            self.tasks.iter().find(|t| t.id == i)
+        } else {
+            None
         }
-        None
+
+    //     if let Some(i) = self.active_task_id {
+    //         for t in &self.tasks {
+    //             if t.id == i {
+    //                 return Some(t)
+    //             }
+    //         }
+    //     }
+    //     None
     } 
 
     pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
