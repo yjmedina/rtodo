@@ -48,6 +48,15 @@ impl Status {
         };
         String::from(label)
     }
+
+    fn sort_order(&self) -> u8 {
+        match self {
+            Status::New => 0,
+            Status::InProgress=> 1,
+            Status::Completed => 2,
+        }
+
+    }
 }
 
 // Impl the debug trait, which allows to 
@@ -132,6 +141,8 @@ fn main() {
 
     let task_1 = Task::new(0, String::from("Learn Rust"), 2, Some(Status::Completed));
     let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3, Some(Status::InProgress));
+
+    assert_eq!(task_1.status.sort_order(), 2);
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
