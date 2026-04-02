@@ -37,7 +37,7 @@ impl Project {
 
 
 
-#[derive(Debug)] 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Status{
     New,
     InProgress,
@@ -53,15 +53,6 @@ impl Status {
 
         };
         String::from(label)
-    }
-
-    fn sort_order(&self) -> u8 {
-        match self {
-            Status::InProgress=> 0,
-            Status::New => 1,
-            Status::Completed => 2,
-        }
-
     }
 }
 
@@ -120,9 +111,9 @@ impl Task {
 fn tasks_by_status<'a>(tasks: &'a [Task], status: &Status) -> Vec<&'a Task> {
     let mut filtered_tasks: Vec<&'a Task> = tasks
         .iter()
-        .filter(|&t| t.status.sort_order() == status.sort_order())
+        .filter(|&t| t.status == *status)
         .collect();
-    filtered_tasks.sort_by(|&a, &b| a.priority.cmp(&b.priority));
+    filtered_tasks.sort_by_key(|&t| &t.priority);
     filtered_tasks
 }
 
@@ -131,7 +122,7 @@ fn display_tasks_by_status(tasks: &[Task], status: Status, active_task_id: Optio
 
     let ftasks = tasks_by_status(tasks, &status);
 
-    if ftasks.len() == 0 {
+    if ftasks.is_empty() {
         println!("  (none)");
 
     }
@@ -150,27 +141,26 @@ fn dispatch(
     command: &str,
     args: &[String],
     project: &Project) {
-    if command == "new" {
-        println!("[new] Creating project...");
-    } else if command == "ls" {
-        println!("{}", project.summary());
-    } else if command == "set" {
-        println!("[set] set active project")
-    } else if command == "delete" {
-        println!("[delete] current project")
 
-    } else if command == "task" {
-        let second_command = &args[0];
-        if second_command == "ls" {
-            display_tasks_by_status(&project.tasks, Status::InProgress, project.active_task_id);
-            display_tasks_by_status(&project.tasks, Status::New, project.active_task_id);
-            display_tasks_by_status(&project.tasks, Status::Completed, project.active_task_id);
+
+    match command {
+        "new" =>  println!("[new] Creating project..."),
+        "ls" =>  println!("{}", project.summary()),
+        "set" =>  println!("[set] set active project"),
+        "delete" =>  println!("[delete] current project"),
+        "task" =>  {
+            let second_command = &args[0];
+
+            if second_command == "ls" {
+                display_tasks_by_status(&project.tasks, Status::InProgress, project.active_task_id);
+                display_tasks_by_status(&project.tasks, Status::New, project.active_task_id);
+                display_tasks_by_status(&project.tasks, Status::Completed, project.active_task_id);
+            }
+            else  {
+                println!("[Task {second_command}] Not yet implemented");
+                }
         }
-        else  {
-            println!("[Task {second_command}] Not yet implemented");
-        }
-    } else {
-        println!("Unknown command: {command}")
+        _ => println!("Unknown command: {command}")
     }
 
 }
@@ -185,7 +175,6 @@ fn main() {
     let task_3 = Task::new(2, String::from("Be a millionare"), Priority::Low, None);
     let task_4 = Task::new(3, String::from("Testing task"), Priority::High, Some(Status::InProgress));
 
-    assert_eq!(task_1.status.sort_order(), 2);
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
