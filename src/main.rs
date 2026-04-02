@@ -1,34 +1,50 @@
 use std::env;
 
 
-// const LOW_PRIORITY: u8 = 1;
-// const MEDIUM_PRIORITY: u8 = 2;
-// const HIGH_PRIORITY: u8 = 3;
+const LOW_PRIORITY: u8 = 1;
+const MEDIUM_PRIORITY: u8 = 2;
+const HIGH_PRIORITY: u8 = 3;
 
 
-
-// // static lifetime, the string will live for the entire program
-// fn get_priority_label(priority: u8) -> &'static str {
-//     if priority == LOW_PRIORITY {
-//         "low" 
-//     } else if priority == MEDIUM_PRIORITY {
-//         "medium"
-//     } else if priority == HIGH_PRIORITY{
-//         "high"
-//     } else {
-//         "unknown"
-//     }
-
-// }
-
-
-#[derive(Debug)] // what the hell is this?
+// Impl the debug trait, which allows to 
+// print using {:#?} while using println!
+#[derive(Debug)] 
 struct Task {
     id: u32,
     description: String,
     priority: u8
 
 }
+
+impl Task {
+    fn new(id: u32, description: String, priority: u8)  -> Self{
+        Task{id, description, priority}
+    }
+
+    fn priority_label(&self) -> &'static str{
+        if self.priority == LOW_PRIORITY {
+                "low" 
+            } else if self.priority == MEDIUM_PRIORITY {
+                "medium"
+            } else if self.priority == HIGH_PRIORITY{
+                "high"
+            } else {
+                "unknown"
+            }
+    }
+
+    fn summary(&self) -> String {
+        format!(
+            "[{}] {} ({})", 
+            self.id,
+            self.description,
+            self.priority_label()
+        )
+
+    }
+
+}
+
 
 fn dispatch(command: &str, args: &[String]) {
     if command == "new" {
@@ -56,23 +72,13 @@ fn print_command(command: &str) {
 }
 
 fn main() {
-    let task_1 = Task{
-        id: 0,
-        description: String::from("Learn Rust"),
-        priority: 2,
-    };
+    let task_1 = Task::new(0, String::from("Learn Rust"), 2);
+    let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3);
 
-    let task_2= Task{
-        id: 1,
-        description: String::from("Use Rust to build my cli"),
-        priority: 3,
-    };
-
-
-    println!("{:#?}", task_1);
-    println!("{:#?}", task_2);
-    println!("task [{}]({}): {}", task_1.id, task_1.priority, task_1.description);
-
+    let tasks = [task_1, task_2];
+    for t in tasks{
+        println!("{}", t.summary());
+    }
 
     let env_args: Vec<String> = env::args().collect();
 
