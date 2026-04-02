@@ -41,11 +41,26 @@ fn dispatch(command: &str) {
 }
 
 
+fn print_command(command: String) {
+    println!("Dispatching: {command}")
+}
+
 fn main() {
     let env_args: Vec<String> = env::args().collect();
 
     if env_args.len() > 1 {
         println!("rtodo v0.1.0 — your local task manager");
+
+        // deep copy form env args
+        let command: String = env_args[1].clone();
+        // command is move to the print_command, can't access after the exec
+        // of the fn
+        // create other copy of command
+        let command_copy = command.clone();
+        print_command(command);
+        println!("Command copy: {command_copy}");
+
+
         // iterate for all arguments
         for (i, arg) in env_args[1.. ].iter().enumerate() {
             println!("arg[{i}]: {arg}");
