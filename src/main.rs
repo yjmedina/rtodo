@@ -5,6 +5,28 @@ const LOW_PRIORITY: u8 = 1;
 const MEDIUM_PRIORITY: u8 = 2;
 const HIGH_PRIORITY: u8 = 3;
 
+#[derive(Debug)]
+struct Project {
+    id: u32,
+    name: String,
+    tasks: Vec<Task>
+}
+
+impl Project {
+    fn new(id: u32, name: String) -> Self {
+        Project { id, name, tasks: Vec::new() }
+    }
+
+    fn task_count(&self) -> usize {
+        self.tasks.len()
+    } 
+
+    fn summary(&self) -> String {
+        format!("{} ({} tasks)", self.name, self.task_count())
+    }
+
+}
+
 
 // Impl the debug trait, which allows to 
 // print using {:#?} while using println!
@@ -72,11 +94,18 @@ fn print_command(command: &str) {
 }
 
 fn main() {
+
+    let mut project = Project::new(0, String::from("Build rtodo CLI"));
+
     let task_1 = Task::new(0, String::from("Learn Rust"), 2);
     let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3);
 
-    let tasks = [task_1, task_2];
-    for t in tasks{
+    project.tasks.push(task_1);
+    project.tasks.push(task_2);
+
+    println!("project summary: {}", project.summary());
+
+    for t in &project.tasks{
         println!("{}", t.summary());
     }
 
