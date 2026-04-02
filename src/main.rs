@@ -28,19 +28,46 @@ impl Project {
 }
 
 
+
+
+#[derive(Debug)] 
+enum Status{
+    New,
+    InProgress,
+    Completed
+}
+
+
+impl Status {
+    fn label(&self) -> String {
+        let label = match self {
+            Status::New => "new",
+            Status::InProgress => "in_progress",
+            Status::Completed => "completed",
+
+        };
+        String::from(label)
+    }
+}
+
 // Impl the debug trait, which allows to 
 // print using {:#?} while using println!
 #[derive(Debug)] 
 struct Task {
     id: u32,
     description: String,
-    priority: u8
+    priority: u8,
+    status: Status,
 
 }
 
 impl Task {
-    fn new(id: u32, description: String, priority: u8)  -> Self{
-        Task{id, description, priority}
+    fn new(id: u32, description: String, priority: u8, status: Option<Status>)  -> Self{
+
+        let status = if let Some(s) = status {s} else {Status::New};
+        // or  more idiomatic
+        // let status = status.unwrap_or(Status::New)
+        Task{id, description, priority, status: status}
     }
 
     fn priority_label(&self) -> &'static str{
@@ -57,10 +84,11 @@ impl Task {
 
     fn summary(&self) -> String {
         format!(
-            "[{}] {} ({})", 
+            "[{}] {} ({}) [{}]", 
             self.id,
             self.description,
-            self.priority_label()
+            self.priority_label(),
+            self.status.label(),
         )
 
     }
@@ -102,8 +130,8 @@ fn main() {
 
     let mut project = Project::new(0, String::from("Build rtodo CLI"));
 
-    let task_1 = Task::new(0, String::from("Learn Rust"), 2);
-    let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3);
+    let task_1 = Task::new(0, String::from("Learn Rust"), 2, Some(Status::Completed));
+    let task_2 = Task::new(1, String::from("Implement CLI using rust"), 3, Some(Status::InProgress));
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
