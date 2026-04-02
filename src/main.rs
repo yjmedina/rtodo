@@ -9,12 +9,13 @@ const HIGH_PRIORITY: u8 = 3;
 struct Project {
     id: u32,
     name: String,
-    tasks: Vec<Task>
+    tasks: Vec<Task>,
+    active_task_id: Option<u32>
 }
 
 impl Project {
     fn new(id: u32, name: String) -> Self {
-        Project { id, name, tasks: Vec::new() }
+        Project { id, name, tasks: Vec::new(), active_task_id: None}
     }
 
     fn task_count(&self) -> usize {
@@ -24,6 +25,17 @@ impl Project {
     fn summary(&self) -> String {
         format!("[{}] {} ({} tasks)", self.id, self.name, self.task_count())
     }
+
+    fn active_task(&self) -> Option<&Task> {
+        if let Some(i) = self.active_task_id {
+            for t in &self.tasks {
+                if t.id == i {
+                    return Some(t)
+                }
+            }
+        }
+        None
+    } 
 
 }
 
@@ -146,6 +158,16 @@ fn main() {
 
     project.tasks.push(task_1);
     project.tasks.push(task_2);
+    project.active_task_id = Some(1);
+    project.active_task_id = Some(3);
+
+    if let Some(task) = project.active_task() {
+        println!("Current active task: {}", task.summary())
+    } else {
+        println!("No active task!")
+    }
+
+
     let env_args: Vec<String> = env::args().collect();
 
     if env_args.len() > 1 {
