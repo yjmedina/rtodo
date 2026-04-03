@@ -1,4 +1,13 @@
-use crate::models::{Project, Status};
+use crate::models::{Project, Status, Priority, Task};
+
+
+
+fn format_task_in_line(task: &Task, is_active: bool) -> String {
+    let p_marker = if task.priority == Priority::High {"!"} else {" "};
+    let active_label = if is_active {"(active)"} else {""};
+    format!("  {:>2} {} {:<22}{}", task.id, p_marker, task.description, active_label)
+}
+
 
 fn display_tasks_by_status(project: &Project, status: Status)  {
     println!("[{}]", status.label());
@@ -11,11 +20,9 @@ fn display_tasks_by_status(project: &Project, status: Status)  {
     }
 
     for t in ftasks {
-        print!("  {}", t.summary());
-        if let Some(i) = project.active_task_id && t.id == i {
-            print!(" (active)");
-        }
-        println!()
+        let is_active =  project.active_task_id.is_some_and(| id | t.id == id);
+        let task_str = format_task_in_line(t, is_active);
+        println!("{task_str}");
     }
 }
 
