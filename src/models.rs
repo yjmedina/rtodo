@@ -14,10 +14,11 @@ impl Project {
         Project { id, name, tasks: Vec::new(), active_task_id: None}
     }
 
-    pub fn add_task(&mut self, description: String, priority: Priority) {
-        let id = self.tasks.len() as u32;
-        let task = Task::new(id, description, priority,  Some(Status::New));
+    pub fn add_task(&mut self, description: String, priority: Priority) -> &Task {
+        let idx = self.tasks.len();
+        let task = Task::new(idx as u32, description, priority,  Some(Status::New));
         self.tasks.push(task);
+        &self.tasks[idx]
     }
 
     pub fn delete_task(&mut self, id: u32) -> Option<Task> {
@@ -70,8 +71,8 @@ impl Project {
     //     None
     } 
 
-    pub fn find_task(&self, id: u32) -> Result<&Task, String> {
-        self.tasks.iter().find(|&t| t.id == id).ok_or(format!("Task with id {id} do not exists"))
+    pub fn find_task(&mut self, id: u32) -> Result<&mut Task, String> {
+        self.tasks.iter_mut().find(|t| t.id == id).ok_or(format!("Task with id {id} do not exists"))
     } 
 
 
@@ -107,6 +108,16 @@ impl Status {
         };
         String::from(label)
     }
+
+    pub fn from(s: &str) -> Result<Self, String> {
+        match s {
+            "completed" => Ok(Status::Completed),
+            "in_progress" => Ok(Status::InProgress),
+            "new" => Ok(Status::New),
+            _ => Err(format!("unknown status: {s}, allowed options [completed, in_progress, new]")),
+        }
+
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -125,6 +136,15 @@ impl Priority {
         };
         String::from(label)
     }
+    pub fn from(s: &str) -> Result<Self, String>{
+        match s {
+            "low" => Ok(Priority::Low),
+            "medium" => Ok(Priority::Medium),
+            "high" => Ok(Priority::High),
+            _ => Err(format!("unknown priority {s}, allowed options [low, medium, high]")) 
+        }
+    }
+    
 }
 
 

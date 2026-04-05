@@ -18,8 +18,7 @@ fn main() {
 
     let task = project.delete_task(4);
     assert!(task.is_some());
-    assert_eq!(task.unwrap().description, "This will be deleted");
-    let projects = [project];
+    let mut projects = [project];
 
     let env_args: Vec<String> = env::args().collect();
 
@@ -27,8 +26,9 @@ fn main() {
         println!("rtodo v0.1.0 — your local task manager");
         let command: &str = &env_args[1];
         let args: &[String]  = &env_args[2..];
-        if let Err(msg) = dispatch(command, args, &projects) {
-            println!("[ERROR]: {}", msg)
+        if let Err(msg) = dispatch(command, args, &mut projects) {
+            eprintln!("[ERROR]: {}", msg);
+            std::process::exit(1);
         }
 
     } else {

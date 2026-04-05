@@ -11,7 +11,7 @@ fn find_projects_by_name<'a>(projects: &'a[Project], name: &str) -> Result<&'a P
         map.insert(p.name.as_str(), p);
     }
 
-    map.get(name).copied().ok_or(format!("Project {name} not found"))
+    map.get(name).copied().ok_or(format!("Project '{name}' not found"))
 
 }
 
@@ -43,20 +43,24 @@ fn display_tasks_by_status(project: &Project, status: Status)  {
 pub fn dispatch(
     command: &str,
     args: &[String],
-    projects: &[Project],
+    projects: &mut [Project],
     ) -> Result<(), String> {
 
     
-    let active_project = projects.get(0).expect("Please provide at least one project");
+    let active_project = projects.get_mut(0).ok_or("Please provide at least one project")?;
 
 
     match command {
         "new" =>  println!("[new] Creating project..."),
-        "ls" =>  println!("{}", active_project.summary()),
+        "ls" =>  {
+            for p in projects {
+                println!("{}", p.summary());
+            }
+        }
         "set" => {
             let name = args.get(0).ok_or("Please provide the project name, task foo")?;
             let p = find_projects_by_name(projects, name)?;
-            println!("Active project set to {}", p.name);
+            println!("Active project set to '{}'", p.name);
            },
         "delete" =>  println!("[delete] current project"),
         "task" =>  {
@@ -75,8 +79,46 @@ pub fn dispatch(
                     let tid_str = args.get(1).ok_or("Provide the task id: (task set 123)")?;
                     let tid: u32 = tid_str.parse().map_err(|e| format!("Failed to parse tid, {e}"))?;
                     let task = active_project.find_task(tid)?;
-                    println!("Active task set to {}", task.id);
+                    let task_summary = task.summary();
+                    active_project.active_task_id = Some(task.id);
+                    println!("Active task set to {}", task_summary);
                 },
+                "add" => {
+                    let description = args.get(1).ok_or("Provide a description")?.clone();
+                    let priority = match args.get(2 ) {
+                        Some(s) => Priority::from(s)?,
+                        None => Priority::Low,
+                    };
+
+                    // todo add priority
+                    let task = active_project.add_task(description, priority);
+                    println!("Task added succesfully\n{}", task.summary());
+                    
+                },
+                "completed" => {
+                    let active_task_id = active_project.active_task_id.ok_or("There is not a actice task rightnow, use task set {id}")?;
+                    let task = active_project.find_task(active_task_id)?;
+                    task.status = Status::Completed;
+                    println!("{}", task.summary()) ;
+                }
+                "move" => {
+                    let task_id_str = args.get(1).ok_or("Provide the task id")?;
+                    let task_id: u32 = task_id_str.parse().map_err(|e| format!("Failed to parse task id: {e}"))?;
+                    let status= match args.get(2) {
+                        Some(s) => Status::from(s)?,
+                        None => Status::New
+                    };
+                    let task = active_project.find_task(task_id)?;
+                    task.status = status;
+                    println!("Task moved {}", task.summary()) ;
+                }, 
+                "delete" => {
+                    let task_id_str = args.get(1).ok_or("Provide the task id")?;
+                    let task_id: u32 = task_id_str.parse().map_err(|e| format!("Failed to parse task id: {e}"))?;
+                    let task = active_project.delete_task(task_id).ok_or(format!("task id {task_id} do not exists"))?;
+                    println!("Delete task: {}", task.summary());
+
+                }
                 arg => {
                     return Err(format!("Task arg ({arg}) Not yet implemented"));
                 }
