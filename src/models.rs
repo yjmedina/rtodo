@@ -70,6 +70,11 @@ impl Project {
     //     None
     } 
 
+    pub fn find_task(&self, id: u32) -> Result<&Task, String> {
+        self.tasks.iter().find(|&t| t.id == id).ok_or(format!("Task with id {id} do not exists"))
+    } 
+
+
     pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
         let mut filtered_tasks: Vec<&Task> = self.tasks
             .iter()
