@@ -27,7 +27,9 @@ fn main() {
         println!("rtodo v0.1.0 — your local task manager");
         let command: &str = &env_args[1];
         let args: &[String]  = &env_args[2..];
-        dispatch(command, args, &projects);
+        if let Err(msg) = dispatch(command, args, &projects) {
+            println!("[ERROR]: {}", msg)
+        }
 
     } else {
         println!("Usage: rtodo <command>");
