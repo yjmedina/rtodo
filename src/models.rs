@@ -251,5 +251,26 @@ mod tests {
         assert!(task.is_none());
     }
 
+    #[test]
+    fn find_task() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        project.add_task(String::from("My Second task"), Priority::Low);
+        let task =  project.find_task(0).expect("Task 0 must exists");
+        assert_eq!(task.id, 0);
+        assert_eq!(task.description, "My first task");
+    }
+
+    #[test]
+    fn find_missing_task() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        project.add_task(String::from("My Second task"), Priority::Low);
+        let task =  project.find_task(99);
+        assert!(task.is_err());
+    }
+
+
+
 
 }

@@ -1,8 +1,6 @@
-mod models;
-mod commands;
 use std::env;
-use models::{Project, Priority};
-use commands::dispatch;
+use rtodo::models::{Project, Priority};
+use rtodo::commands::dispatch;
 
 fn main() {
 
