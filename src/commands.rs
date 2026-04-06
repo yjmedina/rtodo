@@ -1,4 +1,4 @@
-use crate::models::{Project, Status, Priority, Task};
+use crate::models::{Project, Status, Priority};
 use std::collections::HashMap;
 
 
@@ -16,15 +16,8 @@ fn find_projects_by_name<'a>(projects: &'a[Project], name: &str) -> Result<&'a P
 }
 
 
-fn format_task_in_line(task: &Task, is_active: bool) -> String {
-    let p_marker = if task.priority == Priority::High {"!"} else {" "};
-    let active_label = if is_active {"(active)"} else {""};
-    format!("  {:>2} {} {:<22}{}", task.id, p_marker, task.description, active_label)
-}
-
-
 fn display_tasks_by_status(project: &Project, status: Status)  {
-    println!("[{}]", status.label());
+    println!("[{}]", status);
 
     let ftasks = project.tasks_by_status(&status);
 
@@ -34,9 +27,7 @@ fn display_tasks_by_status(project: &Project, status: Status)  {
     }
 
     for t in ftasks {
-        let is_active =  project.active_task_id.is_some_and(| id | t.id == id);
-        let task_str = format_task_in_line(t, is_active);
-        println!("{task_str}");
+        println!("{t}");
     }
 }
 
@@ -54,7 +45,7 @@ pub fn dispatch(
         "new" =>  println!("[new] Creating project..."),
         "ls" =>  {
             for p in projects {
-                println!("{}", p.summary());
+                println!("{p}");
             }
         }
         "set" => {
@@ -68,7 +59,7 @@ pub fn dispatch(
             match second_command.as_str() {
                 "ls" => {
                     if let Some(task) = active_project.active_task() {
-                        println!("Current active task: {}", task.summary())
+                        println!("Current active task: {task}")
                     }
 
                     display_tasks_by_status(&active_project, Status::InProgress);
@@ -79,9 +70,8 @@ pub fn dispatch(
                     let tid_str = args.get(1).ok_or("Provide the task id: (task set 123)")?;
                     let tid: u32 = tid_str.parse().map_err(|e| format!("Failed to parse tid, {e}"))?;
                     let task = active_project.find_task(tid)?;
-                    let task_summary = task.summary();
+                    println!("Active task set to {task}");
                     active_project.active_task_id = Some(task.id);
-                    println!("Active task set to {}", task_summary);
                 },
                 "add" => {
                     let description = args.get(1).ok_or("Provide a description")?.clone();
@@ -92,14 +82,14 @@ pub fn dispatch(
 
                     // todo add priority
                     let task = active_project.add_task(description, priority);
-                    println!("Task added succesfully\n{}", task.summary());
+                    println!("Task added succesfully\n{task}");
                     
                 },
                 "completed" => {
                     let active_task_id = active_project.active_task_id.ok_or("There is not a actice task rightnow, use task set {id}")?;
                     let task = active_project.find_task(active_task_id)?;
                     task.status = Status::Completed;
-                    println!("{}", task.summary()) ;
+                    println!("{task}") ;
                 }
                 "move" => {
                     let task_id_str = args.get(1).ok_or("Provide the task id")?;
@@ -110,13 +100,13 @@ pub fn dispatch(
                     };
                     let task = active_project.find_task(task_id)?;
                     task.status = status;
-                    println!("Task moved {}", task.summary()) ;
+                    println!("Task moved {task}") ;
                 }, 
                 "delete" => {
                     let task_id_str = args.get(1).ok_or("Provide the task id")?;
                     let task_id: u32 = task_id_str.parse().map_err(|e| format!("Failed to parse task id: {e}"))?;
                     let task = active_project.delete_task(task_id).ok_or(format!("task id {task_id} do not exists"))?;
-                    println!("Delete task: {}", task.summary());
+                    println!("Delete task: {task}");
 
                 }
                 arg => {

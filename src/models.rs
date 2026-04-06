@@ -1,3 +1,4 @@
+use std::fmt;
 
 
 // PROJECT
@@ -49,11 +50,6 @@ impl Project {
     pub fn task_count(&self) -> usize {
         self.tasks.len()
     } 
-
-    pub fn summary(&self) -> String {
-        format!("[{}] {} ({} tasks)", self.id, self.name, self.task_count())
-    }
-
     pub fn active_task(&self) -> Option<&Task> {
         if let Some(i) = self.active_task_id {
             self.tasks.iter().find(|t| t.id == i)
@@ -89,6 +85,12 @@ impl Project {
 }
 
 
+impl fmt::Display for Project {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}] {} ({} tasks)", self.id, self.name, self.task_count())
+    }
+}
+
 
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -99,16 +101,6 @@ pub enum Status{
 }
 
 impl Status {
-    pub fn label(&self) -> String {
-        let label = match self {
-            Status::New => "new",
-            Status::InProgress => "in_progress",
-            Status::Completed => "completed",
-
-        };
-        String::from(label)
-    }
-
     pub fn from(s: &str) -> Result<Self, String> {
         match s {
             "completed" => Ok(Status::Completed),
@@ -120,6 +112,17 @@ impl Status {
     }
 }
 
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            Status::New => write!(f, "new"),
+            Status::InProgress => write!(f, "in_progress"),
+            Status::Completed => write!(f, "completed"),
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
     High,
@@ -128,14 +131,6 @@ pub enum Priority {
 }
 
 impl Priority {
-    pub fn label(&self) -> String {
-        let label = match self {
-            Priority::Low => "low",
-            Priority::Medium => "medium",
-            Priority::High => "high",
-        };
-        String::from(label)
-    }
     pub fn from(s: &str) -> Result<Self, String>{
         match s {
             "low" => Ok(Priority::Low),
@@ -146,6 +141,17 @@ impl Priority {
     }
     
 }
+
+impl fmt::Display for Priority {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            Priority::Low => write!(f, "low"),
+            Priority::Medium => write!(f, "medium"),
+            Priority::High => write!(f, "high"),
+        }
+    }
+}
+
 
 
 // Impl the debug trait, which allows to 
@@ -166,15 +172,21 @@ impl Task {
         // let status = status.unwrap_or(Status::New)
         Task{id, description, priority, status: status}
     }
-    pub fn summary(&self) -> String {
+}
+
+
+impl fmt::Display for Task {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let marker = if self.priority == Priority::High {"!"} else {" "};
-        format!(
+        write!(
+            f,
             "[{}]{} {} ({}) [{}]", 
             self.id,
             marker,
             self.description,
-            self.priority.label(),
-            self.status.label(),
+            self.priority,
+            self.status,
         )
     }
 
