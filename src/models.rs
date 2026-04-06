@@ -192,3 +192,64 @@ impl fmt::Display for Task {
     }
 
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_project() -> Project {
+        Project::new(0, String::from("A testing project"))
+    }
+
+    #[test]
+    fn add_task_increments_id() {
+        let mut project = get_project();
+        let first_task = project.add_task(String::from("My first task"), Priority::Low);
+        assert_eq!(first_task.id, 0);
+        let second_task = project.add_task(String::from("My second task"), Priority::Low);
+        assert_eq!(second_task.id, 1);
+    }
+
+    #[test]
+    fn delete_task() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        let deleted_task = project.delete_task(0).expect("Task 0 should exists");
+        assert_eq!(deleted_task.id, 0);
+        assert_eq!(&deleted_task.description, "My first task");
+        assert_eq!(project.task_count(), 0);
+    }
+
+    #[test]
+    fn delete_missing_task() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        let deleted_task = project.delete_task(99);
+        assert!(deleted_task.is_none(), "the task with id 99 must no exists");
+        assert_eq!(project.task_count(), 1);
+    }
+
+    #[test]
+    fn find_active_task() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        project.add_task(String::from("My Second task"), Priority::Low);
+        project.active_task_id = Some(1);
+        let task =  project.active_task().expect("Active task must be the second task");
+        assert_eq!(task.id, 1);
+        assert_eq!(task.description, "My Second task");
+    }
+
+    #[test]
+    fn find_active_task_is_none() {
+        let mut project = get_project();
+        project.add_task(String::from("My first task"), Priority::Low);
+        project.add_task(String::from("My Second task"), Priority::Low);
+        let task =  project.active_task();
+        assert!(task.is_none());
+    }
+
+
+}
