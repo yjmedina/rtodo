@@ -1,8 +1,61 @@
 use std::fmt;
+use serde::{Serialize, Deserialize};
+use std::path;
+use std::fs::File;
+use std::error;
+use std::io::{BufReader, BufWriter};
 
+
+
+// WORKSPACE
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Workspace {
+    pub projects: Vec<Project>,
+    pub active_project_id: Option<u32>
+} 
+
+
+impl Workspace {
+    pub fn load(path: &path::Path) -> Result<Workspace, Box<dyn error::Error>> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        let workspace: Workspace = serde_json::from_reader(reader)?;
+        Ok(workspace)
+    }
+
+    pub fn save(&self, path: &path::Path) -> Result<(), Box<dyn error::Error>> {
+        let file = File::open(path)?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer_pretty(writer, self)?;
+        Ok(())
+    }
+
+    pub fn find_project(&mut self, id: u32) -> Option<&mut Project> {
+        self.projects.iter_mut().find(|p| p.id == id)
+    }
+
+
+    pub fn active_project(&mut self) -> Option<&mut Project> {
+        self.find_project(self.active_project_id?)
+    }
+
+    pub fn set_active_project(&mut self, id: u32) -> Result<(), String> {
+        self.find_project(id).ok_or(format!("{id} do not exists"))?;
+        self.active_project_id = Some(id);
+        Ok(())
+        }
+
+    pub fn find_project_by_name(&self, name: &str) -> Option<& Project> {
+        self.projects.iter().find(|t| t.name == name)
+    }
+
+
+
+
+}
 
 // PROJECT
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Project {
     pub id: u32,
     pub name: String,
@@ -94,7 +147,7 @@ impl fmt::Display for Project {
 
 
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Status{
     New,
     InProgress,
@@ -124,7 +177,7 @@ impl fmt::Display for Status {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Priority {
     High,
     Medium,
@@ -157,7 +210,7 @@ impl fmt::Display for Priority {
 
 // Impl the debug trait, which allows to 
 // print using {:#?} while using println!
-#[derive(Debug)] 
+#[derive(Debug, Serialize, Deserialize)] 
 pub struct Task {
     pub id: u32,
     pub description: String,

@@ -1,19 +1,4 @@
-use crate::models::{Project, Status, Priority};
-use std::collections::HashMap;
-
-
-// this function makes no sense but 
-// it is only for learning purposes
-fn find_projects_by_name<'a>(projects: &'a[Project], name: &str) -> Result<&'a Project, String> {
-    let mut map = HashMap::new();
-
-    for p in projects {
-        map.insert(p.name.as_str(), p);
-    }
-
-    map.get(name).copied().ok_or(format!("Project '{name}' not found"))
-
-}
+use crate::models::{Priority, Project, Status, Workspace};
 
 
 fn display_tasks_by_status(project: &Project, status: Status)  {
@@ -34,28 +19,28 @@ fn display_tasks_by_status(project: &Project, status: Status)  {
 pub fn dispatch(
     command: &str,
     args: &[String],
-    projects: &mut [Project],
+    workspace: &mut Workspace,
     ) -> Result<(), String> {
 
     
-    let active_project = projects.get_mut(0).ok_or("Please provide at least one project")?;
 
 
     match command {
         "new" =>  println!("[new] Creating project..."),
         "ls" =>  {
-            for p in projects {
+            for p in &workspace.projects {
                 println!("{p}");
             }
         }
         "set" => {
             let name = args.get(0).ok_or("Please provide the project name, task foo")?;
-            let p = find_projects_by_name(projects, name)?;
+            let p = workspace.find_project_by_name(name).ok_or(format!("No project found by name: {name}"))?;
             println!("Active project set to '{}'", p.name);
            },
         "delete" =>  println!("[delete] current project"),
         "task" =>  {
             let second_command = args.get(0).ok_or("Please provide task command, for example: task ls")?;
+            let active_project = workspace.active_project().ok_or("There is not active project, please use set {name} first.")?;
             match second_command.as_str() {
                 "ls" => {
                     if let Some(task) = active_project.active_task() {
