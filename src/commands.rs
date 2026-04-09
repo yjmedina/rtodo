@@ -33,9 +33,7 @@ pub fn dispatch(
             println!("project added: {}", project);
         }
         "ls" =>  {
-            for p in &workspace.projects {
-                println!("{p}");
-            }
+            println!("{}", workspace);
         }
         "set" => {
             let pid: u32= args
@@ -45,6 +43,10 @@ pub fn dispatch(
                 .map_err(|e| format!("Error parsing the project id: {e}"))?;
             let p = workspace.set_active_project(pid)?;
             println!("Active project set to '{}'", p);
+           },
+        "unset" => {
+            workspace.unset_active_project();
+            println!("Active project unset");
            },
         "delete" =>  println!("[delete] current project"),
         "task" =>  {

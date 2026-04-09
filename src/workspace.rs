@@ -1,3 +1,4 @@
+use core::fmt;
 use std::env;
 use serde::{Serialize, Deserialize};
 use std::path::{self, PathBuf};
@@ -5,6 +6,7 @@ use std::fs::File;
 use std::error;
 use std::io::{BufReader, BufWriter};
 use crate::models::Project;
+use std::fmt::Display;
 
 
 type DynError = Box<dyn std::error::Error>;
@@ -60,6 +62,11 @@ impl Workspace {
         Ok(&mut self.projects[idx])
         }
 
+    pub fn unset_active_project(&mut self) -> () {
+        self.active_project_id = None;
+        }
+
+
     pub fn init() -> Result<Self, DynError> {
         let current_dir = std::env::current_dir()?;
         let path = current_dir.join(STATE_JSON_PATH);
@@ -112,4 +119,17 @@ impl Workspace {
     }
 
 
+}
+
+
+impl Display for Workspace {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for p in &self.projects {
+            let active_label = if self.active_project_id == Some(p.id ) {"[ACTIVE]"} else {""};
+            write!(f, "{} {}\n", p, active_label)?;
+        }
+        Ok(())
+        
+
+    }
 }
