@@ -1,5 +1,5 @@
 use std::env;
-use rtodo::models::Workspace;
+use rtodo::workspace::Workspace;
 use rtodo::commands::dispatch;
 use std::path::{PathBuf};
 

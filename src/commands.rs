@@ -1,4 +1,5 @@
-use crate::models::{Priority, Project, Status, Workspace};
+use crate::models::{Priority, Project, Status};
+use crate::workspace::Workspace;
 
 
 fn display_tasks_by_status(project: &Project, status: Status)  {
