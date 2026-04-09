@@ -1,12 +1,34 @@
 use std::env;
 use rtodo::models::Workspace;
 use rtodo::commands::dispatch;
-use std::path::Path;
+use std::path::{PathBuf};
+
+const STATE_JSON_PATH: &'static str = ".rtodo/state.json";
+
+fn find_workspace_path() -> Result<PathBuf, Box<dyn std::error::Error>>{
+    let mut dir= env::current_dir().expect("msg");
+
+    loop {
+        let path = dir.join(STATE_JSON_PATH);
+        if path.is_file() {
+            return Ok(path);
+        }
+
+        // move to parent
+        if !dir.pop() {
+            // if false, then there is not parent
+            break;
+        }
+    }
+
+    Err("The file do not exists!".into())
+
+}
 
 fn main() {
 
 
-    let path = Path::new(".rtodo/state.json");
+    let path = find_workspace_path().expect("The rtodo do not exists!");
     let mut workspace = match Workspace::load(&path) {
         Ok(w) => w,
         Err(msg) => {
