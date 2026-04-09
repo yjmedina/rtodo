@@ -27,16 +27,24 @@ pub fn dispatch(
 
 
     match command {
-        "new" =>  println!("[new] Creating project..."),
+        "add" =>  {
+            let name = args.get(0).ok_or("Please provide a name for the project")?.clone();
+            let project = workspace.add_project(name);
+            println!("project added: {}", project);
+        }
         "ls" =>  {
             for p in &workspace.projects {
                 println!("{p}");
             }
         }
         "set" => {
-            let name = args.get(0).ok_or("Please provide the project name, task foo")?;
-            let p = workspace.find_project_by_name(name).ok_or(format!("No project found by name: {name}"))?;
-            println!("Active project set to '{}'", p.name);
+            let pid: u32= args
+                .get(0)
+                .ok_or("Please provide the project")?
+                .parse()
+                .map_err(|e| format!("Error parsing the project id: {e}"))?;
+            let p = workspace.set_active_project(pid)?;
+            println!("Active project set to '{}'", p);
            },
         "delete" =>  println!("[delete] current project"),
         "task" =>  {

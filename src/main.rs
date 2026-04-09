@@ -1,12 +1,10 @@
 use std::env;
-use rtodo::workspace::{Workspace, find_workspace_path};
+use rtodo::workspace::Workspace;
 use rtodo::commands::dispatch;
 
 fn main() {
 
-
-    let path = find_workspace_path().expect("The rtodo do not exists!");
-    let mut workspace = match Workspace::load(&path) {
+    let mut workspace = match Workspace::load_or_init() {
         Ok(w) => w,
         Err(msg) => {
             eprintln!("{}", msg);
@@ -35,10 +33,14 @@ fn main() {
         println!("rtodo v0.1.0 — your local task manager");
         let command: &str = &env_args[1];
         let args: &[String]  = &env_args[2..];
-        if let Err(msg) = dispatch(command, args, &mut workspace) {
+
+        _ = match dispatch(command, args, &mut workspace) {
+            Ok(()) => workspace.save(),
+            Err(msg )=> {
             eprintln!("[ERROR]: {}", msg);
             std::process::exit(1);
         }
+    }
 
     } else {
         println!("Usage: rtodo <command>");
