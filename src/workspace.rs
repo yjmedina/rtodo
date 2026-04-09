@@ -1,3 +1,4 @@
+use std::env;
 use serde::{Serialize, Deserialize};
 use std::path;
 use std::fs::File;
@@ -6,6 +7,8 @@ use std::io::{BufReader, BufWriter};
 use crate::models::Project;
 
 
+
+const STATE_JSON_PATH: &'static str = ".rtodo/state.json";
 
 // WORKSPACE
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,3 +58,26 @@ impl Workspace {
     }
 
 }
+
+
+
+pub fn find_workspace_path() -> Result<path::PathBuf, Box<dyn std::error::Error>>{
+    let mut dir= env::current_dir().expect("msg");
+
+    loop {
+        let path = dir.join(STATE_JSON_PATH);
+        if path.is_file() {
+            return Ok(path);
+        }
+
+        // move to parent
+        if !dir.pop() {
+            // if false, then there is not parent
+            break;
+        }
+    }
+
+    Err("The file do not exists!".into())
+
+}
+
