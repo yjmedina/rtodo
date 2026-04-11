@@ -71,7 +71,7 @@ impl Project {
 
 
     // define lifetimes for practice purposes only
-    pub fn tasks_by_status<'a>(&'a self, status: &Status) -> Vec<&'a Task> {
+    pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
         let mut filtered_tasks: Vec<&Task> = self.tasks
             .iter()
             .filter(|&t| t.status == *status)
