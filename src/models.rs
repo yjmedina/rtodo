@@ -1,5 +1,6 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
+use std::fmt::Write;
 
 // PROJECT
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,41 +35,45 @@ impl Project {
             None
         }
 
-
-        // for (i, task ) in self.tasks.iter().enumerate() {
-        //     if task.id == id {
-        //         let last_item = self.tasks.len() - 1;
-        //         self.tasks.swap(i, last_item);
-        //         let task =  self.tasks.pop();
-        //         return task
-        //     }
-        // }
-
-        // None
    }
 
     pub fn task_count(&self) -> usize {
         self.tasks.len()
     } 
+
     pub fn active_task(&self) -> Option<&Task> {
-        if let Some(i) = self.active_task_id {
-            self.tasks.iter().find(|t| t.id == i)
+        if let Some(id) = self.active_task_id {
+            let i = self.find_task(id)?;
+            Some(&self.tasks[i])
         } else {
             None
         }
+   } 
 
-    //     if let Some(i) = self.active_task_id {
-    //         for t in &self.tasks {
-    //             if t.id == i {
-    //                 return Some(t)
-    //             }
-    //         }
-    //     }
-    //     None
-    } 
 
-    pub fn find_task(&mut self, id: u32) -> Result<&mut Task, String> {
-        self.tasks.iter_mut().find(|t| t.id == id).ok_or(format!("Task with id {id} do not exists"))
+   pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
+        let idx = self.find_task(id).ok_or(format!("Task {id} do not exists"))?;
+        self.active_task_id = Some(id);
+        let task = &mut self.tasks[idx];
+        task.status = Status::InProgress;
+        Ok(task)
+   }
+
+   pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
+        let idx = self.find_task(id).ok_or(format!("Task {id} do not exists"))?;
+        self.tasks[idx].status = status;
+        Ok(&self.tasks[idx])
+   }
+
+   pub fn active_task_completed(&mut self) -> Result<&Task, String> {
+        let id = self.active_task_id.ok_or("No active task, please set an active task or use move directly")?;
+        self.move_task(id, Status::Completed)
+
+   }
+
+
+    pub fn find_task(&self, id: u32) -> Option<usize> {
+        self.tasks.iter().position(|t| t.id == id)
     } 
 
 
@@ -83,6 +88,25 @@ impl Project {
     }
 
 
+    pub fn task_summary(&self) -> String {
+        let mut out = String::new();
+        for status in &[Status::InProgress, Status::New, Status::Completed] {
+            writeln!(out, "{status}").unwrap();
+
+            let ftasks = self.tasks_by_status(status);
+
+            if ftasks.is_empty() {
+                writeln!(out, "  (none)").unwrap();
+                continue;
+            }
+
+            for t in ftasks {
+                writeln!(out, "  {t}").unwrap();
+            }
+        }
+
+        out
+    }
 }
 
 
@@ -256,9 +280,9 @@ mod tests {
         let mut project = get_project();
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
-        let task =  project.find_task(0).expect("Task 0 must exists");
-        assert_eq!(task.id, 0);
-        assert_eq!(task.description, "My first task");
+        let idx =  project.find_task(0).expect("Task 0 must exists");
+        assert_eq!(idx, 0);
+        assert_eq!(&project.tasks[idx].description, "My first task");
     }
 
     #[test]
@@ -267,7 +291,7 @@ mod tests {
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
         let task =  project.find_task(99);
-        assert!(task.is_err());
+        assert!(task.is_none());
     }
 
 
