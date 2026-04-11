@@ -46,7 +46,7 @@ impl Workspace {
         Ok(())
     }
 
-    pub fn find_project(&mut self, id: u32) -> Option<usize> {
+    pub fn find_project(&self, id: u32) -> Option<usize> {
         self.projects.iter().position(|p| p.id == id)
     }
 
