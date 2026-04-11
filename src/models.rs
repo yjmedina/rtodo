@@ -26,16 +26,8 @@ impl Project {
 
     pub fn delete_task(&mut self, id: u32) -> Option<Task> {
         // iter finds the position of the index Option<usize>
-        let pos = self.tasks.iter().position(|t | t.id == id);
-
-        // if found, then swap it with the last element and return it
-        if let Some(i) = pos {
-            let task = self.tasks.swap_remove(i);
-            Some(task)
-        } else {
-            None
-        }
-
+        let pos = self.tasks.iter().position(|t | t.id == id)?;
+        Some(self.tasks.swap_remove(pos))
    }
 
     pub fn task_count(&self) -> usize {
