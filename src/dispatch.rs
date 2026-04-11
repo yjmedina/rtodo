@@ -32,7 +32,7 @@ pub fn exec_cmd(
                     println!("{}", active_project.task_summary());
                 }
                 TaskCommands::Add { desc, priority } => {
-                let priority = Priority::from(&priority)?;
+                let priority = Priority::try_from(priority.as_str())?;
                 // todo add priority
                 let task = active_project.add_task(desc, priority);
                 println!("Task added succesfully\n{task}");
@@ -46,7 +46,7 @@ pub fn exec_cmd(
                     println!("Completed!: {task}");
                 },
                 TaskCommands::Move { tid, status } => {
-                    let status = Status::from(&status)?;
+                    let status = Status::try_from(status.as_str())?;
                     let task = active_project.move_task(tid, status)?;
                     println!("Task moved to {}: {}", task.status, task);
                 }

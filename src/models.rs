@@ -1,6 +1,7 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
 use std::fmt::Write;
+use std::convert::TryFrom;
 
 // PROJECT
 #[derive(Debug, Serialize, Deserialize)]
@@ -125,8 +126,9 @@ pub enum Status{
     Completed
 }
 
-impl Status {
-    pub fn from(s: &str) -> Result<Self, String> {
+impl TryFrom<&str> for Status {
+    type Error = String;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "completed" => Ok(Status::Completed),
             "in_progress" => Ok(Status::InProgress),
@@ -155,8 +157,9 @@ pub enum Priority {
     Low,
 }
 
-impl Priority {
-    pub fn from(s: &str) -> Result<Self, String>{
+impl TryFrom<&str> for Priority {
+    type Error = String;
+    fn try_from(s: &str) -> Result<Self, Self::Error>{
         match s {
             "low" => Ok(Priority::Low),
             "medium" => Ok(Priority::Medium),
