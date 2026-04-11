@@ -1,3 +1,4 @@
 pub mod models;
-pub mod commands;
+pub mod dispatch;
 pub mod workspace;
+pub mod cli;

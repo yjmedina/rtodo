@@ -1,6 +1,9 @@
-use std::env;
 use rtodo::workspace::Workspace;
-use rtodo::commands::dispatch;
+use rtodo::cli::CLI;
+use rtodo::dispatch::exec_cmd;
+use clap::Parser;
+
+
 
 fn main() {
 
@@ -11,39 +14,16 @@ fn main() {
             std::process::exit(1);
         }
     };
+    let cli = CLI::parse();
 
-
-    // let mut project = Project::new(0, String::from("Build rtodo CLI"));
-
-
-    // project.add_task( String::from("Learn Rust"), Priority::Medium);
-    // project.add_task(String::from("Implement CLI using rust"), Priority::Medium);
-    // project.add_task( String::from("Be a millionare"), Priority::Low);
-    // project.add_task( String::from("Testing task"), Priority::High);
-    // project.add_task( String::from("This will be deleted"), Priority::High);
-    // project.active_task_id = Some(2);
-
-    // let task = project.delete_task(4);
-    // assert!(task.is_some());
-    // let mut projects = [project];
-
-    let env_args: Vec<String> = env::args().collect();
-
-    if env_args.len() > 1 {
-        println!("rtodo v0.1.0 — your local task manager");
-        let command: &str = &env_args[1];
-        let args: &[String]  = &env_args[2..];
-
-        _ = match dispatch(command, args, &mut workspace) {
-            Ok(()) => workspace.save(),
-            Err(msg )=> {
-            eprintln!("[ERROR]: {}", msg);
-            std::process::exit(1);
-        }
+    if let Err(msg) = exec_cmd(cli.command, &mut workspace) {
+        eprintln!("{}", msg);
+        std::process::exit(1);
     }
 
-    } else {
-        println!("Usage: rtodo <command>");
+    if let Err(msg) = workspace.save() {
+        eprintln!("error writing the workspace {}", msg);
+        std::process::exit(1)
     }
 
 }
