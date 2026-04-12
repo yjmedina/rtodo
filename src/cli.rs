@@ -3,7 +3,20 @@ use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
 pub struct CLI {
     #[command(subcommand)]
-    pub command: ProjectCommands,
+    pub command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    Init,
+    Project {
+        #[command(subcommand)]
+        command: ProjectCommands
+    },
+    Task {
+        #[command(subcommand)]
+        command: TaskCommands
+    }
 }
 
 #[derive(Subcommand, Debug)]
@@ -13,10 +26,6 @@ pub enum ProjectCommands {
     Set {pid: u32},
     UnSet,
     Delete {pid: u32},
-    Task {
-        #[command(subcommand)]
-        command: TaskCommands
-    }
 }
 
 #[derive(Subcommand, Debug)]

@@ -101,11 +101,9 @@ impl Workspace {
     }
 
 
-    pub fn load_or_init() -> Result<Self, DynError> {
-        match Self::find_path() {
-            Some(p) => Self::load_from_path(&p),
-            None => Self::init(),
-        }
+    pub fn load() -> Result<Self, DynError> {
+        let p  = Self::find_path().ok_or("Do no exists, please run init first")?;
+        Self::load_from_path(&p)
 
     }
 
