@@ -77,7 +77,7 @@ fi
 ARCHIVE_NAME="${BIN}-${TARGET}.tar.gz"
 BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 ARCHIVE_URL="${BASE_URL}/${ARCHIVE_NAME}"
-CHECKSUMS_URL="${BASE_URL}/rtodo-sha256sums.txt"
+CHECKSUMS_URL="${BASE_URL}/${ARCHIVE_NAME%.tar.gz}.sha256"
 
 # ── Download to temp dir ──────────────────────────────────────────────────────
 
@@ -97,14 +97,12 @@ curl -fsSL "$CHECKSUMS_URL" -o "${TMP_DIR}/sha256sums.txt" \
 say "Verifying checksum..."
 
 cd "$TMP_DIR"
-grep "${ARCHIVE_NAME}" sha256sums.txt > expected.txt \
-    || err "Checksum for ${ARCHIVE_NAME} not found in sha256sums.txt."
 
 if [ "$CHECKSUM_CMD" = "sha256sum" ]; then
-    sha256sum --check --quiet expected.txt \
+    sha256sum --check --quiet sha256sums.txt \
         || err "SHA256 verification FAILED. Download may be corrupt or tampered."
 else
-    shasum -a 256 --check --quiet expected.txt \
+    shasum -a 256 --check --quiet sha256sums.txt \
         || err "SHA256 verification FAILED. Download may be corrupt or tampered."
 fi
 
