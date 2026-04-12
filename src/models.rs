@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
 use std::fmt::Write;
-use std::convert::TryFrom;
+use std::cmp::Reverse;
 
 // PROJECT
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ impl Project {
 
     pub fn add_task(&mut self, description: String, priority: Priority) -> &Task {
         let idx = self.tasks.len();
-        let task = Task::new(idx as u32, description, priority,  Some(Status::New));
+        let task = Task::new(idx as u32, description, priority,  Status::New);
         self.tasks.push(task);
         &self.tasks[idx]
     }
@@ -35,17 +35,13 @@ impl Project {
     } 
 
     pub fn active_task(&self) -> Option<&Task> {
-        if let Some(id) = self.active_task_id {
-            let i = self.find_task(id)?;
-            Some(&self.tasks[i])
-        } else {
-            None
-        }
-   } 
+        self.find_task(self.active_task_id?)
+        .map(|idx| &self.tasks[idx])
+  } 
 
 
    pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
-        let idx = self.find_task(id).ok_or(format!("Task {id} do not exists"))?;
+        let idx = self.find_task(id).ok_or_else(|| format!("Task {id} do not exists"))?;
         self.active_task_id = Some(id);
         let task = &mut self.tasks[idx];
         task.status = Status::InProgress;
@@ -53,13 +49,13 @@ impl Project {
    }
 
    pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
-        let idx = self.find_task(id).ok_or(format!("Task {id} do not exists"))?;
+        let idx = self.find_task(id).ok_or_else(|| format!("Task {id} do not exists"))?;
         self.tasks[idx].status = status;
         Ok(&self.tasks[idx])
    }
 
    pub fn active_task_completed(&mut self) -> Result<&Task, String> {
-        let id = self.active_task_id.ok_or("No active task, please set an active task or use move directly")?;
+        let id = self.active_task_id.ok_or( "No active task, please set an active task or use move directly")?;
         self.move_task(id, Status::Completed)
 
    }
@@ -76,7 +72,7 @@ impl Project {
             .iter()
             .filter(|&t| t.status == *status)
             .collect();
-        filtered_tasks.sort_by_key(|&t| &t.priority);
+        filtered_tasks.sort_by_key(|&t| Reverse(&t.priority));
         filtered_tasks
     }
 
@@ -144,9 +140,9 @@ impl fmt::Display for Status {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Priority {
-    High,
-    Medium,
     Low,
+    Medium,
+    High
 }
 
 impl TryFrom<&str> for Priority {
@@ -186,11 +182,8 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new(id: u32, description: String, priority: Priority , status: Option<Status>)  -> Self{
-        let status = if let Some(s) = status {s} else {Status::New};
-        // or  more idiomatic
-        // let status = status.unwrap_or(Status::New)
-        Task{id, description, priority, status: status}
+    pub fn new(id: u32, description: String, priority: Priority , status: Status)  -> Self{
+        Task{id, description, priority, status}
     }
 }
 

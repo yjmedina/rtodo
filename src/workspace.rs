@@ -10,7 +10,7 @@ use std::fmt::Display;
 
 
 type DynError = Box<dyn std::error::Error>;
-const STATE_JSON_PATH: &'static str = ".rtodo/state.json";
+const STATE_JSON_PATH: &str = ".rtodo/state.json";
 
 // WORKSPACE
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,12 +57,12 @@ impl Workspace {
     }
 
     pub fn set_active_project(&mut self, id: u32) -> Result<&mut Project, String> {
-        let idx = self.find_project(id).ok_or(format!("{id} do not exists"))?;
+        let idx = self.find_project(id).ok_or_else(|| format!("{id} do not exists"))?;
         self.active_project_id = Some(id);
         Ok(&mut self.projects[idx])
         }
 
-    pub fn unset_active_project(&mut self) -> () {
+    pub fn unset_active_project(&mut self) {
         self.active_project_id = None;
         }
 
@@ -126,7 +126,7 @@ impl Display for Workspace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for p in &self.projects {
             let active_label = if self.active_project_id == Some(p.id ) {"[ACTIVE]"} else {""};
-            write!(f, "{} {}\n", p, active_label)?;
+            writeln!(f, "{} {}", p, active_label)?;
         }
         Ok(())
         
