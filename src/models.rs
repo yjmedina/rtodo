@@ -1,7 +1,10 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt;
 use std::fmt::Write;
+
+const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
 
 // PROJECT
 #[derive(Debug, Serialize, Deserialize)]
@@ -10,6 +13,7 @@ pub struct Project {
     pub name: String,
     pub tasks: Vec<Task>,
     pub active_task_id: Option<u32>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl Project {
@@ -19,6 +23,7 @@ impl Project {
             name,
             tasks: Vec::new(),
             active_task_id: None,
+            created_at: Utc::now(),
         }
     }
 
@@ -106,10 +111,11 @@ impl fmt::Display for Project {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "[{}] {} ({} tasks)",
+            "[{}] {} ({} tasks) -- ({})",
             self.id,
             self.name,
-            self.task_count()
+            self.task_count(),
+            self.created_at.format(CREATED_AT_FORMAT)
         )
     }
 }
@@ -184,6 +190,7 @@ pub struct Task {
     pub description: String,
     pub priority: Priority,
     pub status: Status,
+    pub created_at: DateTime<Utc>,
 }
 
 impl Task {
@@ -193,6 +200,7 @@ impl Task {
             description,
             priority,
             status,
+            created_at: Utc::now(),
         }
     }
 }
@@ -206,8 +214,13 @@ impl fmt::Display for Task {
         };
         write!(
             f,
-            "[{}]{} {} ({}) [{}]",
-            self.id, marker, self.description, self.priority, self.status,
+            "[{}]{} {} ({}) [{}] -- ({})",
+            self.id,
+            marker,
+            self.description,
+            self.priority,
+            self.status,
+            self.created_at.format(CREATED_AT_FORMAT)
         )
     }
 }
