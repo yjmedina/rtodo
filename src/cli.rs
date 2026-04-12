@@ -61,10 +61,13 @@ pub enum TaskCommands {
     /// Add a new task to the active project.
     ///
     /// `--priority` accepts: `low`, `medium` (default), `high`.
+    /// `--parent` adds this as a subtask of the given task ID (max depth: 2).
     Add {
         desc: String,
         #[arg(short, long, default_value_t = String::from("medium"))]
         priority: String,
+        #[arg(short = 'P', long)]
+        parent: Option<u32>,
     },
 
     /// List all tasks in the active project, grouped by status.

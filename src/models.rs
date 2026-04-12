@@ -42,24 +42,76 @@ impl Project {
     }
 
     /// Append a new task and return a reference to it.
-    pub fn add_task(&mut self, description: String, priority: Priority) -> &Task {
-        let idx = self.tasks.len();
-        let task = Task::new(idx as u32, description, priority, Status::New);
+    ///
+    /// # Errors
+    /// Returns `Err` if `parent_id` does not exist or is itself a subtask (max depth: 2).
+    pub fn add_task(
+        &mut self,
+        description: String,
+        priority: Priority,
+        parent_id: Option<u32>,
+    ) -> Result<&Task, String> {
+        if let Some(pid) = parent_id {
+            let parent = self
+                .tasks
+                .iter()
+                .find(|t| t.id == pid)
+                .ok_or_else(|| format!("Task {pid} not found."))?;
+            if parent.parent_id.is_some() {
+                return Err("Cannot add subtask to a subtask (max depth: 2).".into());
+            }
+        }
+        let id = self
+            .tasks
+            .iter()
+            .map(|t| t.id)
+            .max()
+            .map(|m| m + 1)
+            .unwrap_or(0);
+        let task = Task::new(id, description, priority, Status::New, parent_id);
         self.tasks.push(task);
-        &self.tasks[idx]
+        Ok(self.tasks.last().unwrap())
     }
 
-    /// Remove and return the task with `id`.
+    /// Return all direct subtasks of `task_id`, in insertion order.
+    pub fn subtasks_of(&self, task_id: u32) -> Vec<&Task> {
+        self.tasks
+            .iter()
+            .filter(|t| t.parent_id == Some(task_id))
+            .collect()
+    }
+
+    /// Return `true` if `task_id` has at least one non-`Completed` subtask.
+    pub fn has_incomplete_subtasks(&self, task_id: u32) -> bool {
+        self.subtasks_of(task_id)
+            .iter()
+            .any(|t| t.status != Status::Completed)
+    }
+
+    /// Remove and return the task with `id`, cascading to any subtasks.
     ///
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
     pub fn delete_task(&mut self, id: u32) -> Result<Task, String> {
-        let pos = self
-            .find_task(id)
+        self.find_task(id)
             .ok_or_else(|| format!("Task {id} not found."))?;
-        if self.active_task_id == Some(id) {
+        // Clear active_task if it's the deleted task or one of its subtasks
+        if self.active_task_id == Some(id)
+            || self
+                .active_task_id
+                .map(|aid| {
+                    self.tasks
+                        .iter()
+                        .any(|t| t.id == aid && t.parent_id == Some(id))
+                })
+                .unwrap_or(false)
+        {
             self.active_task_id = None;
         }
+        // Cascade: remove subtasks
+        self.tasks.retain(|t| t.parent_id != Some(id));
+        // Re-find after retain (indices may have shifted)
+        let pos = self.find_task(id).unwrap();
         Ok(self.tasks.swap_remove(pos))
     }
 
@@ -149,7 +201,11 @@ impl Project {
         filtered_tasks
     }
 
-    /// Build a formatted string listing all tasks grouped by status.
+    /// Build a formatted string listing tasks grouped by status, with subtasks indented.
+    ///
+    /// When `status` is `Some`, a top-level task is included if it matches OR any of
+    /// its subtasks match; only matching subtasks are shown. When `None`, top-level
+    /// tasks are grouped by their own status and all subtasks are shown beneath them.
     pub fn task_summary(&self, status: Option<Status>) -> String {
         let mut out = String::new();
 
@@ -158,18 +214,56 @@ impl Project {
             None => ALL_STATUSES,
         };
 
-        for status in statuses {
-            writeln!(out, "{status}").unwrap();
+        for section_status in statuses {
+            writeln!(out, "{section_status}").unwrap();
 
-            let ftasks = self.tasks_by_status(status);
+            let mut top_level: Vec<&Task> = self
+                .tasks
+                .iter()
+                .filter(|t| t.parent_id.is_none())
+                .filter(|t| {
+                    if status.is_some() {
+                        t.status == *section_status
+                            || self
+                                .subtasks_of(t.id)
+                                .iter()
+                                .any(|s| s.status == *section_status)
+                    } else {
+                        t.status == *section_status
+                    }
+                })
+                .collect();
 
-            if ftasks.is_empty() {
+            top_level.sort_by_key(|t| Reverse(&t.priority));
+
+            if top_level.is_empty() {
                 writeln!(out, "  (none)").unwrap();
                 continue;
             }
 
-            for t in ftasks {
-                writeln!(out, "  {t}").unwrap();
+            for t in top_level {
+                let subtasks = self.subtasks_of(t.id);
+                if subtasks.is_empty() {
+                    writeln!(out, "  {t}").unwrap();
+                } else {
+                    let done = subtasks
+                        .iter()
+                        .filter(|s| s.status == Status::Completed)
+                        .count();
+                    let total = subtasks.len();
+                    writeln!(out, "  {t}  ({done}/{total})").unwrap();
+                    let visible: Vec<&&Task> = if status.is_some() {
+                        subtasks
+                            .iter()
+                            .filter(|s| s.status == *section_status)
+                            .collect()
+                    } else {
+                        subtasks.iter().collect()
+                    };
+                    for sub in visible {
+                        writeln!(out, "      {sub}").unwrap();
+                    }
+                }
             }
         }
 
@@ -277,6 +371,8 @@ impl fmt::Display for Priority {
 pub struct Task {
     /// Unique identifier within the parent project.
     pub id: u32,
+    /// ID of the parent task, or `None` if this is a top-level task.
+    pub parent_id: Option<u32>,
     /// Human-readable description of the work to be done.
     pub description: String,
     /// Relative importance of this task.
@@ -289,9 +385,16 @@ pub struct Task {
 
 impl Task {
     /// Create a new task with the given fields and the current UTC timestamp.
-    pub fn new(id: u32, description: String, priority: Priority, status: Status) -> Self {
+    pub fn new(
+        id: u32,
+        description: String,
+        priority: Priority,
+        status: Status,
+        parent_id: Option<u32>,
+    ) -> Self {
         Task {
             id,
+            parent_id,
             description,
             priority,
             status,
@@ -331,16 +434,22 @@ mod tests {
     #[test]
     fn add_task_increments_id() {
         let mut project = get_project();
-        let first_task = project.add_task(String::from("My first task"), Priority::Low);
+        let first_task = project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
         assert_eq!(first_task.id, 0);
-        let second_task = project.add_task(String::from("My second task"), Priority::Low);
+        let second_task = project
+            .add_task(String::from("My second task"), Priority::Low, None)
+            .unwrap();
         assert_eq!(second_task.id, 1);
     }
 
     #[test]
     fn delete_task() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
         let deleted_task = project.delete_task(0).expect("Task 0 should exists");
         assert_eq!(deleted_task.id, 0);
         assert_eq!(&deleted_task.description, "My first task");
@@ -350,17 +459,53 @@ mod tests {
     #[test]
     fn delete_missing_task() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
         let deleted_task = project.delete_task(99);
         assert!(deleted_task.is_err(), "the task with id 99 must not exist");
         assert_eq!(project.task_count(), 1);
     }
 
     #[test]
+    fn delete_task_cascades_subtasks() {
+        let mut project = get_project();
+        project
+            .add_task(String::from("Parent"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("Sub A"), Priority::Low, Some(0))
+            .unwrap();
+        project
+            .add_task(String::from("Sub B"), Priority::Low, Some(0))
+            .unwrap();
+        assert_eq!(project.task_count(), 3);
+        project.delete_task(0).unwrap();
+        assert_eq!(project.task_count(), 0);
+    }
+
+    #[test]
+    fn add_subtask_depth_limit() {
+        let mut project = get_project();
+        project
+            .add_task(String::from("Parent"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("Child"), Priority::Low, Some(0))
+            .unwrap();
+        let result = project.add_task(String::from("Grandchild"), Priority::Low, Some(1));
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn find_active_task() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
-        project.add_task(String::from("My Second task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("My Second task"), Priority::Low, None)
+            .unwrap();
         project.active_task_id = Some(1);
         let task = project
             .active_task()
@@ -372,8 +517,12 @@ mod tests {
     #[test]
     fn find_active_task_is_none() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
-        project.add_task(String::from("My Second task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("My Second task"), Priority::Low, None)
+            .unwrap();
         let task = project.active_task();
         assert!(task.is_none());
     }
@@ -381,8 +530,12 @@ mod tests {
     #[test]
     fn find_task() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
-        project.add_task(String::from("My Second task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("My Second task"), Priority::Low, None)
+            .unwrap();
         let idx = project.find_task(0).expect("Task 0 must exists");
         assert_eq!(idx, 0);
         assert_eq!(&project.tasks[idx].description, "My first task");
@@ -391,8 +544,12 @@ mod tests {
     #[test]
     fn find_missing_task() {
         let mut project = get_project();
-        project.add_task(String::from("My first task"), Priority::Low);
-        project.add_task(String::from("My Second task"), Priority::Low);
+        project
+            .add_task(String::from("My first task"), Priority::Low, None)
+            .unwrap();
+        project
+            .add_task(String::from("My Second task"), Priority::Low, None)
+            .unwrap();
         let task = project.find_task(99);
         assert!(task.is_none());
     }

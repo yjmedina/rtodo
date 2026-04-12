@@ -56,22 +56,34 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             let status = status.map(|s| Status::try_from(s.as_str())).transpose()?;
             println!("{}", project.task_summary(status));
         }
-        TaskCommands::Add { desc, priority } => {
+        TaskCommands::Add {
+            desc,
+            priority,
+            parent,
+        } => {
             let priority = Priority::try_from(priority.as_str())?;
-            // todo add priority
-            let task = project.add_task(desc, priority);
-            println!("Task added succesfully\n{task}");
+            let task = project.add_task(desc, priority, parent)?;
+            println!("Task added successfully\n{task}");
         }
         TaskCommands::Set { tid } => {
             let task = project.set_active_task(tid)?;
             println!("Active task: {task}");
         }
         TaskCommands::Completed => {
+            let id = project.active_task_id.ok_or(
+                "No active task. Use `rtodo task set <id>` or `rtodo task move <id> <status>` instead.",
+            )?;
+            if project.has_incomplete_subtasks(id) {
+                return Err("Task has incomplete subtasks. Complete them first.".into());
+            }
             let task = project.active_task_completed()?;
             println!("Completed!: {task}");
         }
         TaskCommands::Move { tid, status } => {
             let status = Status::try_from(status.as_str())?;
+            if status == Status::Completed && project.has_incomplete_subtasks(tid) {
+                return Err("Task has incomplete subtasks. Complete them first.".into());
+            }
             let task = project.move_task(tid, status)?;
             println!("Task moved to {}: {}", task.status, task);
         }
