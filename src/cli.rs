@@ -11,21 +11,21 @@ pub enum Commands {
     Init,
     Project {
         #[command(subcommand)]
-        command: ProjectCommands
+        command: ProjectCommands,
     },
     Task {
         #[command(subcommand)]
-        command: TaskCommands
-    }
+        command: TaskCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ProjectCommands {
-    Add {name: String},
+    Add { name: String },
     Ls,
-    Set {pid: u32},
+    Set { pid: u32 },
     UnSet,
-    Delete {pid: u32},
+    Delete { pid: u32 },
 }
 
 #[derive(Subcommand, Debug)]
@@ -33,9 +33,15 @@ pub enum TaskCommands {
     Add {
         desc: String,
         #[arg(short, long, default_value_t = String::from("medium"))]
-        priority: String},
+        priority: String,
+    },
     Ls,
-    Set {tid: u32},
+    Set {
+        tid: u32,
+    },
     Completed,
-    Move {tid: u32, status: String},
+    Move {
+        tid: u32,
+        status: String,
+    },
 }

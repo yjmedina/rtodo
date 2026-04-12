@@ -1,13 +1,12 @@
-use core::fmt;
-use std::env;
-use serde::{Serialize, Deserialize};
-use std::path::{self, PathBuf};
-use std::fs::File;
-use std::error;
-use std::io::{BufReader, BufWriter};
 use crate::models::Project;
+use core::fmt;
+use serde::{Deserialize, Serialize};
+use std::env;
+use std::error;
 use std::fmt::Display;
-
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+use std::path::{self, PathBuf};
 
 type DynError = Box<dyn std::error::Error>;
 const STATE_JSON_PATH: &str = ".rtodo/state.json";
@@ -15,20 +14,21 @@ const STATE_JSON_PATH: &str = ".rtodo/state.json";
 // WORKSPACE
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Workspace {
-
     // ignore the path when writing to disk
     #[serde(skip)]
     path: PathBuf,
     pub projects: Vec<Project>,
-    pub active_project_id: Option<u32>
-} 
-
+    pub active_project_id: Option<u32>,
+}
 
 impl Workspace {
     fn new(path: path::PathBuf) -> Self {
-        Workspace{projects: Vec::new(), active_project_id: None, path}
+        Workspace {
+            projects: Vec::new(),
+            active_project_id: None,
+            path,
+        }
     }
-
 
     fn load_from_path(path: &path::Path) -> Result<Workspace, Box<dyn error::Error>> {
         let file = File::open(path)?;
@@ -50,39 +50,41 @@ impl Workspace {
         self.projects.iter().position(|p| p.id == id)
     }
 
-
     pub fn active_project(&mut self) -> Option<&mut Project> {
         let idx = self.find_project(self.active_project_id?)?;
         Some(&mut self.projects[idx])
     }
 
     pub fn set_active_project(&mut self, id: u32) -> Result<&mut Project, String> {
-        let idx = self.find_project(id).ok_or_else(|| format!("{id} do not exists"))?;
+        let idx = self
+            .find_project(id)
+            .ok_or_else(|| format!("{id} do not exists"))?;
         self.active_project_id = Some(id);
         Ok(&mut self.projects[idx])
-        }
+    }
 
     pub fn unset_active_project(&mut self) {
         self.active_project_id = None;
-        }
-
+    }
 
     pub fn init() -> Result<Self, DynError> {
         let current_dir = std::env::current_dir()?;
         let path = current_dir.join(STATE_JSON_PATH);
         if path.is_file() {
-            return Err("file already exists!".into())
+            return Err("file already exists!".into());
         }
 
-        let parent_dir = path.parent().expect("It exists because STATE_JSON_PATH have .rtodo as parent");
+        let parent_dir = path
+            .parent()
+            .expect("It exists because STATE_JSON_PATH have .rtodo as parent");
         std::fs::create_dir_all(parent_dir)?;
         let workspace = Self::new(path);
         workspace.save()?;
         Ok(workspace)
     }
 
-    fn find_path() -> Option<path::PathBuf>{
-        let mut dir= env::current_dir().ok()?;
+    fn find_path() -> Option<path::PathBuf> {
+        let mut dir = env::current_dir().ok()?;
 
         loop {
             let path = dir.join(STATE_JSON_PATH);
@@ -96,38 +98,33 @@ impl Workspace {
                 break;
             }
         }
-        
+
         None
     }
 
-
     pub fn load() -> Result<Self, DynError> {
-        let p  = Self::find_path().ok_or("Do no exists, please run init first")?;
+        let p = Self::find_path().ok_or("Do no exists, please run init first")?;
         Self::load_from_path(&p)
-
     }
-
 
     pub fn add_project(&mut self, name: String) -> &Project {
         let idx = self.projects.len();
         let p = Project::new(idx as u32, name);
         self.projects.push(p);
         &self.projects[idx]
-
     }
-
-
 }
-
 
 impl Display for Workspace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for p in &self.projects {
-            let active_label = if self.active_project_id == Some(p.id ) {"[ACTIVE]"} else {""};
+            let active_label = if self.active_project_id == Some(p.id) {
+                "[ACTIVE]"
+            } else {
+                ""
+            };
             writeln!(f, "{} {}", p, active_label)?;
         }
         Ok(())
-        
-
     }
 }

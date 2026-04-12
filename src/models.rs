@@ -1,7 +1,7 @@
-use std::fmt;
-use serde::{Serialize, Deserialize};
-use std::fmt::Write;
+use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
+use std::fmt;
+use std::fmt::Write;
 
 // PROJECT
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,73 +9,77 @@ pub struct Project {
     pub id: u32,
     pub name: String,
     pub tasks: Vec<Task>,
-    pub active_task_id: Option<u32>
+    pub active_task_id: Option<u32>,
 }
 
 impl Project {
     pub fn new(id: u32, name: String) -> Self {
-        Project { id, name, tasks: Vec::new(), active_task_id: None}
+        Project {
+            id,
+            name,
+            tasks: Vec::new(),
+            active_task_id: None,
+        }
     }
 
     pub fn add_task(&mut self, description: String, priority: Priority) -> &Task {
         let idx = self.tasks.len();
-        let task = Task::new(idx as u32, description, priority,  Status::New);
+        let task = Task::new(idx as u32, description, priority, Status::New);
         self.tasks.push(task);
         &self.tasks[idx]
     }
 
     pub fn delete_task(&mut self, id: u32) -> Option<Task> {
         // iter finds the position of the index Option<usize>
-        let pos = self.tasks.iter().position(|t | t.id == id)?;
+        let pos = self.tasks.iter().position(|t| t.id == id)?;
         Some(self.tasks.swap_remove(pos))
-   }
+    }
 
     pub fn task_count(&self) -> usize {
         self.tasks.len()
-    } 
+    }
 
     pub fn active_task(&self) -> Option<&Task> {
         self.find_task(self.active_task_id?)
-        .map(|idx| &self.tasks[idx])
-  } 
+            .map(|idx| &self.tasks[idx])
+    }
 
-
-   pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
-        let idx = self.find_task(id).ok_or_else(|| format!("Task {id} do not exists"))?;
+    pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
+        let idx = self
+            .find_task(id)
+            .ok_or_else(|| format!("Task {id} do not exists"))?;
         self.active_task_id = Some(id);
         let task = &mut self.tasks[idx];
         task.status = Status::InProgress;
         Ok(task)
-   }
+    }
 
-   pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
-        let idx = self.find_task(id).ok_or_else(|| format!("Task {id} do not exists"))?;
+    pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
+        let idx = self
+            .find_task(id)
+            .ok_or_else(|| format!("Task {id} do not exists"))?;
         self.tasks[idx].status = status;
         Ok(&self.tasks[idx])
-   }
+    }
 
-   pub fn active_task_completed(&mut self) -> Result<&Task, String> {
-        let id = self.active_task_id.ok_or( "No active task, please set an active task or use move directly")?;
+    pub fn active_task_completed(&mut self) -> Result<&Task, String> {
+        let id = self
+            .active_task_id
+            .ok_or("No active task, please set an active task or use move directly")?;
         self.move_task(id, Status::Completed)
-
-   }
-
+    }
 
     pub fn find_task(&self, id: u32) -> Option<usize> {
         self.tasks.iter().position(|t| t.id == id)
-    } 
-
+    }
 
     // define lifetimes for practice purposes only
     pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
-        let mut filtered_tasks: Vec<&Task> = self.tasks
-            .iter()
-            .filter(|&t| t.status == *status)
-            .collect();
+        let mut filtered_tasks: Vec<&Task> =
+            self.tasks.iter().filter(|&t| t.status == *status).collect();
         filtered_tasks.sort_by_key(|&t| Reverse(&t.priority));
         filtered_tasks
     }
-
 
     pub fn task_summary(&self) -> String {
         let mut out = String::new();
@@ -98,20 +102,23 @@ impl Project {
     }
 }
 
-
 impl fmt::Display for Project {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}] {} ({} tasks)", self.id, self.name, self.task_count())
+        write!(
+            f,
+            "[{}] {} ({} tasks)",
+            self.id,
+            self.name,
+            self.task_count()
+        )
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum Status{
+pub enum Status {
     New,
     InProgress,
-    Completed
+    Completed,
 }
 
 impl TryFrom<&str> for Status {
@@ -121,14 +128,15 @@ impl TryFrom<&str> for Status {
             "completed" => Ok(Status::Completed),
             "in_progress" => Ok(Status::InProgress),
             "new" => Ok(Status::New),
-            _ => Err(format!("unknown status: {s}, allowed options [completed, in_progress, new]")),
+            _ => Err(format!(
+                "unknown status: {s}, allowed options [completed, in_progress, new]"
+            )),
         }
-
     }
 }
 
 impl fmt::Display for Status {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Status::New => write!(f, "new"),
             Status::InProgress => write!(f, "in_progress"),
@@ -137,29 +145,29 @@ impl fmt::Display for Status {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Priority {
     Low,
     Medium,
-    High
+    High,
 }
 
 impl TryFrom<&str> for Priority {
     type Error = String;
-    fn try_from(s: &str) -> Result<Self, Self::Error>{
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "low" => Ok(Priority::Low),
             "medium" => Ok(Priority::Medium),
             "high" => Ok(Priority::High),
-            _ => Err(format!("unknown priority {s}, allowed options [low, medium, high]")) 
+            _ => Err(format!(
+                "unknown priority {s}, allowed options [low, medium, high]"
+            )),
         }
     }
-    
 }
 
 impl fmt::Display for Priority {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Priority::Low => write!(f, "low"),
             Priority::Medium => write!(f, "medium"),
@@ -168,44 +176,41 @@ impl fmt::Display for Priority {
     }
 }
 
-
-
-// Impl the debug trait, which allows to 
+// Impl the debug trait, which allows to
 // print using {:#?} while using println!
-#[derive(Debug, Serialize, Deserialize)] 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
     pub id: u32,
     pub description: String,
     pub priority: Priority,
     pub status: Status,
-
 }
 
 impl Task {
-    pub fn new(id: u32, description: String, priority: Priority , status: Status)  -> Self{
-        Task{id, description, priority, status}
+    pub fn new(id: u32, description: String, priority: Priority, status: Status) -> Self {
+        Task {
+            id,
+            description,
+            priority,
+            status,
+        }
     }
 }
-
 
 impl fmt::Display for Task {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let marker = if self.priority == Priority::High {"!"} else {" "};
+        let marker = if self.priority == Priority::High {
+            "!"
+        } else {
+            " "
+        };
         write!(
             f,
-            "[{}]{} {} ({}) [{}]", 
-            self.id,
-            marker,
-            self.description,
-            self.priority,
-            self.status,
+            "[{}]{} {} ({}) [{}]",
+            self.id, marker, self.description, self.priority, self.status,
         )
     }
-
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -249,7 +254,9 @@ mod tests {
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
         project.active_task_id = Some(1);
-        let task =  project.active_task().expect("Active task must be the second task");
+        let task = project
+            .active_task()
+            .expect("Active task must be the second task");
         assert_eq!(task.id, 1);
         assert_eq!(task.description, "My Second task");
     }
@@ -259,7 +266,7 @@ mod tests {
         let mut project = get_project();
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
-        let task =  project.active_task();
+        let task = project.active_task();
         assert!(task.is_none());
     }
 
@@ -268,7 +275,7 @@ mod tests {
         let mut project = get_project();
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
-        let idx =  project.find_task(0).expect("Task 0 must exists");
+        let idx = project.find_task(0).expect("Task 0 must exists");
         assert_eq!(idx, 0);
         assert_eq!(&project.tasks[idx].description, "My first task");
     }
@@ -278,11 +285,7 @@ mod tests {
         let mut project = get_project();
         project.add_task(String::from("My first task"), Priority::Low);
         project.add_task(String::from("My Second task"), Priority::Low);
-        let task =  project.find_task(99);
+        let task = project.find_task(99);
         assert!(task.is_none());
     }
-
-
-
-
 }
