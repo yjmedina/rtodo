@@ -154,6 +154,20 @@ impl Workspace {
         self.projects.push(p);
         &self.projects[idx]
     }
+
+
+    /// Delete a project
+    pub fn delete_project(&mut self, id: u32) -> Result<Project, String> {
+        let idx = self
+        .find_project(id)
+        .ok_or_else(|| format!("Project {id} not found"))?;
+        // reset active project id
+        if self.active_project_id == Some(id) {
+            self.active_project_id = None
+        }
+        Ok(self.projects.swap_remove(idx))
+    }
+
 }
 
 impl Display for Workspace {

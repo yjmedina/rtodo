@@ -30,8 +30,9 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
             workspace.unset_active_project();
             println!("Active project unset");
         }
-        ProjectCommands::Delete { .. } => {
-            println!("This command is not yet implemented.");
+        ProjectCommands::Delete { pid } => {
+            let p = workspace.delete_project(pid)?;
+            println!("{p} have been deleted")
         }
     };
     Ok(())
