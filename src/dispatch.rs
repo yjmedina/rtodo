@@ -52,8 +52,11 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
 /// invalid, or there is no active task when one is required.
 pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
     match command {
-        TaskCommands::Ls => {
-            println!("{}", project.task_summary());
+        TaskCommands::Ls { status } => {
+            let status = status
+                .map(|s| Status::try_from(s.as_str()))
+                .transpose()?;
+            println!("{}", project.task_summary(status));
         }
         TaskCommands::Add { desc, priority } => {
             let priority = Priority::try_from(priority.as_str())?;

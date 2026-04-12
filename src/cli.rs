@@ -69,7 +69,10 @@ pub enum TaskCommands {
     },
 
     /// List all tasks in the active project, grouped by status.
-    Ls,
+    Ls {
+        #[arg(short, long)]
+        status: Option<String>
+    },
 
     /// Set a task as the active task by its ID.
     ///

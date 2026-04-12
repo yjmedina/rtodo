@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt;
 use std::fmt::Write;
-
 const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
+const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
 
 /// A named project that contains a list of tasks.
 #[derive(Debug, Serialize, Deserialize)]
@@ -151,9 +151,15 @@ impl Project {
     }
 
     /// Build a formatted string listing all tasks grouped by status.
-    pub fn task_summary(&self) -> String {
+    pub fn task_summary(&self, status: Option<Status>) -> String {
         let mut out = String::new();
-        for status in &[Status::InProgress, Status::New, Status::Completed] {
+
+        let statuses: &[Status] = match &status {
+            Some(s) => std::slice::from_ref(s),
+            None => ALL_STATUSES,
+        };
+
+        for status in statuses {
             writeln!(out, "{status}").unwrap();
 
             let ftasks = self.tasks_by_status(status);
