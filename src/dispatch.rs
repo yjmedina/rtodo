@@ -1,7 +1,19 @@
+//! Command dispatch layer for `rtodo`.
+//!
+//! Bridges parsed CLI arguments (from [`crate::cli`]) to operations on the
+//! workspace and project models. Each function handles one family of subcommands.
+
 use crate::cli::{ProjectCommands, TaskCommands};
 use crate::models::{Priority, Project, Status};
 use crate::workspace::Workspace;
 
+/// Execute a `project` subcommand against the given workspace.
+///
+/// Mutates `workspace` in place. The caller is responsible for persisting
+/// the workspace afterward.
+///
+/// # Errors
+/// Returns `Err` if the requested project ID does not exist.
 pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> Result<(), String> {
     match command {
         ProjectCommands::Add { name } => {
@@ -19,11 +31,20 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
             println!("Active project unset");
         }
         ProjectCommands::Delete { .. } => {
-            println!("Not Implemented!");
+            println!("This command is not yet implemented.");
         }
     };
     Ok(())
 }
+
+/// Execute a `task` subcommand against the active project.
+///
+/// Mutates `project` in place. The caller is responsible for persisting
+/// the workspace afterward.
+///
+/// # Errors
+/// Returns `Err` if the task ID does not exist, the status/priority string is
+/// invalid, or there is no active task when one is required.
 pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
     match command {
         TaskCommands::Ls => {

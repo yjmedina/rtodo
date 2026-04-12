@@ -1,3 +1,11 @@
+//! Core domain types for `rtodo`.
+//!
+//! This module defines the data model:
+//! - [`Project`] — a named container that holds [`Task`]s.
+//! - [`Task`] — a unit of work with a [`Status`] and [`Priority`].
+//! - [`Status`] — lifecycle state of a task (`new` → `in_progress` → `completed`).
+//! - [`Priority`] — importance level of a task (`low`, `medium`, `high`).
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -6,17 +14,23 @@ use std::fmt::Write;
 
 const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
 
-// PROJECT
+/// A named project that contains a list of tasks.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Project {
+    /// Unique identifier, assigned sequentially within the workspace.
     pub id: u32,
+    /// Human-readable project name.
     pub name: String,
+    /// All tasks belonging to this project.
     pub tasks: Vec<Task>,
+    /// ID of the currently active task, if any.
     pub active_task_id: Option<u32>,
+    /// Timestamp when this project was created.
     pub created_at: DateTime<Utc>,
 }
 
 impl Project {
+    /// Create a new empty project with the given `id` and `name`.
     pub fn new(id: u32, name: String) -> Self {
         Project {
             id,
@@ -27,6 +41,7 @@ impl Project {
         }
     }
 
+    /// Append a new task and return a reference to it.
     pub fn add_task(&mut self, description: String, priority: Priority) -> &Task {
         let idx = self.tasks.len();
         let task = Task::new(idx as u32, description, priority, Status::New);
@@ -34,51 +49,69 @@ impl Project {
         &self.tasks[idx]
     }
 
+    /// Remove and return the task with `id`, or `None` if it does not exist.
     pub fn delete_task(&mut self, id: u32) -> Option<Task> {
-        // iter finds the position of the index Option<usize>
         let pos = self.tasks.iter().position(|t| t.id == id)?;
         Some(self.tasks.swap_remove(pos))
     }
 
+    /// Total number of tasks in this project.
     pub fn task_count(&self) -> usize {
         self.tasks.len()
     }
 
+    /// Return the active task, or `None` if no task is currently active.
     pub fn active_task(&self) -> Option<&Task> {
         self.find_task(self.active_task_id?)
             .map(|idx| &self.tasks[idx])
     }
 
+    /// Set task `id` as the active task and transition it to `InProgress`.
+    ///
+    /// # Errors
+    /// Returns `Err` if no task with `id` exists in this project.
     pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
         let idx = self
             .find_task(id)
-            .ok_or_else(|| format!("Task {id} do not exists"))?;
+            .ok_or_else(|| format!("Task {id} not found."))?;
         self.active_task_id = Some(id);
         let task = &mut self.tasks[idx];
         task.status = Status::InProgress;
         Ok(task)
     }
 
+    /// Move task `id` to the given `status`.
+    ///
+    /// # Errors
+    /// Returns `Err` if no task with `id` exists in this project.
     pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
         let idx = self
             .find_task(id)
-            .ok_or_else(|| format!("Task {id} do not exists"))?;
+            .ok_or_else(|| format!("Task {id} not found."))?;
         self.tasks[idx].status = status;
         Ok(&self.tasks[idx])
     }
 
+    /// Mark the active task as `Completed`.
+    ///
+    /// # Errors
+    /// Returns `Err` if there is no active task.
     pub fn active_task_completed(&mut self) -> Result<&Task, String> {
-        let id = self
-            .active_task_id
-            .ok_or("No active task, please set an active task or use move directly")?;
+        let id = self.active_task_id.ok_or(
+            "No active task. Use `rtodo task set <id>` or `rtodo task move <id> <status>` instead.",
+        )?;
         self.move_task(id, Status::Completed)
     }
 
+    /// Return the index of task `id` within `self.tasks`, or `None` if not found.
     pub fn find_task(&self, id: u32) -> Option<usize> {
         self.tasks.iter().position(|t| t.id == id)
     }
 
-    // define lifetimes for practice purposes only
+    /// Return all tasks matching `status`, sorted by priority descending.
+    ///
+    /// Lifetimes are explicit here for practice — the returned references
+    /// borrow from `self`.
     pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
         let mut filtered_tasks: Vec<&Task> =
             self.tasks.iter().filter(|&t| t.status == *status).collect();
@@ -86,6 +119,7 @@ impl Project {
         filtered_tasks
     }
 
+    /// Build a formatted string listing all tasks grouped by status.
     pub fn task_summary(&self) -> String {
         let mut out = String::new();
         for status in &[Status::InProgress, Status::New, Status::Completed] {
@@ -120,22 +154,31 @@ impl fmt::Display for Project {
     }
 }
 
+/// Lifecycle state of a task.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Status {
+    /// Task has been created but work has not started.
     New,
+    /// Task is actively being worked on.
     InProgress,
+    /// Task has been finished.
     Completed,
 }
 
 impl TryFrom<&str> for Status {
     type Error = String;
+
+    /// Parse a status from its string representation.
+    ///
+    /// # Errors
+    /// Returns `Err` if `s` is not one of `new`, `in_progress`, `completed`.
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "completed" => Ok(Status::Completed),
             "in_progress" => Ok(Status::InProgress),
             "new" => Ok(Status::New),
             _ => Err(format!(
-                "unknown status: {s}, allowed options [completed, in_progress, new]"
+                "Unknown status \"{s}\". Valid values: new, in_progress, completed."
             )),
         }
     }
@@ -151,22 +194,31 @@ impl fmt::Display for Status {
     }
 }
 
+/// Importance level of a task.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Priority {
+    /// Low importance — tackle after `Medium` and `High` tasks.
     Low,
+    /// Default importance level.
     Medium,
+    /// High importance — shown with a `!` marker in listings.
     High,
 }
 
 impl TryFrom<&str> for Priority {
     type Error = String;
+
+    /// Parse a priority from its string representation.
+    ///
+    /// # Errors
+    /// Returns `Err` if `s` is not one of `low`, `medium`, `high`.
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "low" => Ok(Priority::Low),
             "medium" => Ok(Priority::Medium),
             "high" => Ok(Priority::High),
             _ => Err(format!(
-                "unknown priority {s}, allowed options [low, medium, high]"
+                "Unknown priority \"{s}\". Valid values: low, medium, high."
             )),
         }
     }
@@ -182,18 +234,25 @@ impl fmt::Display for Priority {
     }
 }
 
-// Impl the debug trait, which allows to
-// print using {:#?} while using println!
+/// A single unit of work within a [`Project`].
+///
+/// Implements [`fmt::Debug`] via derive, which allows `println!("{:#?}", task)`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
+    /// Unique identifier within the parent project.
     pub id: u32,
+    /// Human-readable description of the work to be done.
     pub description: String,
+    /// Relative importance of this task.
     pub priority: Priority,
+    /// Current lifecycle state of this task.
     pub status: Status,
+    /// Timestamp when this task was created.
     pub created_at: DateTime<Utc>,
 }
 
 impl Task {
+    /// Create a new task with the given fields and the current UTC timestamp.
     pub fn new(id: u32, description: String, priority: Priority, status: Status) -> Self {
         Task {
             id,
