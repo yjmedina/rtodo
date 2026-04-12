@@ -33,6 +33,10 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
         ProjectCommands::Delete { pid } => {
             let p = workspace.delete_project(pid)?;
             println!("{p} have been deleted")
+        },
+        ProjectCommands::Edit { pid , name } => {
+            let p = workspace.edit_project(pid, name)?;
+            println!("{p}")
         }
     };
     Ok(())
@@ -69,6 +73,17 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             let status = Status::try_from(status.as_str())?;
             let task = project.move_task(tid, status)?;
             println!("Task moved to {}: {}", task.status, task);
+        }
+        TaskCommands::Delete { tid } => {
+            let task = project.delete_task(tid)?;
+            println!("Deleted task: {task}");
+        }
+        TaskCommands::Edit { tid, desc, priority } => {
+            let priority = priority
+                .map(|p| Priority::try_from(p.as_str()))
+                .transpose()?;
+            let task = project.edit_task(tid, desc, priority)?;
+            println!("Updated task: {task}");
         }
     }
 

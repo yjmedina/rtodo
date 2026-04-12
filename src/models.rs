@@ -49,10 +49,18 @@ impl Project {
         &self.tasks[idx]
     }
 
-    /// Remove and return the task with `id`, or `None` if it does not exist.
-    pub fn delete_task(&mut self, id: u32) -> Option<Task> {
-        let pos = self.tasks.iter().position(|t| t.id == id)?;
-        Some(self.tasks.swap_remove(pos))
+    /// Remove and return the task with `id`.
+    ///
+    /// # Errors
+    /// Returns `Err` if no task with `id` exists in this project.
+    pub fn delete_task(&mut self, id: u32) -> Result<Task, String> {
+        let pos = self
+            .find_task(id)
+            .ok_or_else(|| format!("Task {id} not found."))?;
+        if self.active_task_id == Some(id) {
+            self.active_task_id = None;
+        }
+        Ok(self.tasks.swap_remove(pos))
     }
 
     /// Total number of tasks in this project.
@@ -107,6 +115,29 @@ impl Project {
     pub fn find_task(&self, id: u32) -> Option<usize> {
         self.tasks.iter().position(|t| t.id == id)
     }
+
+    /// Edit description and/or priority of task `id`.
+    ///
+    /// # Errors
+    /// Returns `Err` if no task with `id` exists in this project.
+    pub fn edit_task(
+        &mut self,
+        id: u32,
+        description: Option<String>,
+        priority: Option<Priority>,
+    ) -> Result<&Task, String> {
+        let idx = self
+            .find_task(id)
+            .ok_or_else(|| format!("Task {id} not found."))?;
+        if let Some(desc) = description {
+            self.tasks[idx].description = desc;
+        }
+        if let Some(p) = priority {
+            self.tasks[idx].priority = p;
+        }
+        Ok(&self.tasks[idx])
+    }
+
 
     /// Return all tasks matching `status`, sorted by priority descending.
     ///
@@ -316,7 +347,7 @@ mod tests {
         let mut project = get_project();
         project.add_task(String::from("My first task"), Priority::Low);
         let deleted_task = project.delete_task(99);
-        assert!(deleted_task.is_none(), "the task with id 99 must no exists");
+        assert!(deleted_task.is_err(), "the task with id 99 must not exist");
         assert_eq!(project.task_count(), 1);
     }
 

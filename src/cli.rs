@@ -50,6 +50,10 @@ pub enum ProjectCommands {
 
     /// Delete a project by its ID.
     Delete { pid: u32 },
+
+    /// Edit Project
+    Edit { pid: u32, name: String}
+
 }
 
 /// Subcommands for `rtodo task`.
@@ -79,4 +83,18 @@ pub enum TaskCommands {
     ///
     /// `status` accepts: `new`, `in_progress`, `completed`.
     Move { tid: u32, status: String },
+
+    /// Delete a task by its ID.
+    Delete { tid: u32 },
+
+    /// Edit a task's description and/or priority.
+    ///
+    /// `--priority` accepts: `low`, `medium`, `high`.
+    Edit {
+        tid: u32,
+        #[arg(short, long)]
+        desc: Option<String>,
+        #[arg(short, long)]
+        priority: Option<String>,
+    },
 }

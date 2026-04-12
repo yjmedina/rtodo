@@ -168,6 +168,16 @@ impl Workspace {
         Ok(self.projects.swap_remove(idx))
     }
 
+    /// Delete a project
+    pub fn edit_project(&mut self, id: u32, name: String) -> Result<&Project, String> {
+        let idx = self
+        .find_project(id)
+        .ok_or_else(|| format!("Project {id} not found"))?;
+        self.projects[idx].name = name;
+        Ok(&self.projects[idx])
+    }
+
+
 }
 
 impl Display for Workspace {
