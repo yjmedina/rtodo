@@ -138,7 +138,6 @@ impl Project {
         Ok(&self.tasks[idx])
     }
 
-
     /// Return all tasks matching `status`, sorted by priority descending.
     ///
     /// Lifetimes are explicit here for practice — the returned references

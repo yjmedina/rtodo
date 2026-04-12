@@ -52,8 +52,7 @@ pub enum ProjectCommands {
     Delete { pid: u32 },
 
     /// Edit Project
-    Edit { pid: u32, name: String}
-
+    Edit { pid: u32, name: String },
 }
 
 /// Subcommands for `rtodo task`.
@@ -71,7 +70,7 @@ pub enum TaskCommands {
     /// List all tasks in the active project, grouped by status.
     Ls {
         #[arg(short, long)]
-        status: Option<String>
+        status: Option<String>,
     },
 
     /// Set a task as the active task by its ID.

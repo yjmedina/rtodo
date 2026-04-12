@@ -155,12 +155,11 @@ impl Workspace {
         &self.projects[idx]
     }
 
-
     /// Delete a project
     pub fn delete_project(&mut self, id: u32) -> Result<Project, String> {
         let idx = self
-        .find_project(id)
-        .ok_or_else(|| format!("Project {id} not found"))?;
+            .find_project(id)
+            .ok_or_else(|| format!("Project {id} not found"))?;
         // reset active project id
         if self.active_project_id == Some(id) {
             self.active_project_id = None
@@ -171,13 +170,11 @@ impl Workspace {
     /// Delete a project
     pub fn edit_project(&mut self, id: u32, name: String) -> Result<&Project, String> {
         let idx = self
-        .find_project(id)
-        .ok_or_else(|| format!("Project {id} not found"))?;
+            .find_project(id)
+            .ok_or_else(|| format!("Project {id} not found"))?;
         self.projects[idx].name = name;
         Ok(&self.projects[idx])
     }
-
-
 }
 
 impl Display for Workspace {

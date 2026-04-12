@@ -33,8 +33,8 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
         ProjectCommands::Delete { pid } => {
             let p = workspace.delete_project(pid)?;
             println!("{p} have been deleted")
-        },
-        ProjectCommands::Edit { pid , name } => {
+        }
+        ProjectCommands::Edit { pid, name } => {
             let p = workspace.edit_project(pid, name)?;
             println!("{p}")
         }
@@ -53,9 +53,7 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
 pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
     match command {
         TaskCommands::Ls { status } => {
-            let status = status
-                .map(|s| Status::try_from(s.as_str()))
-                .transpose()?;
+            let status = status.map(|s| Status::try_from(s.as_str())).transpose()?;
             println!("{}", project.task_summary(status));
         }
         TaskCommands::Add { desc, priority } => {
@@ -81,7 +79,11 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             let task = project.delete_task(tid)?;
             println!("Deleted task: {task}");
         }
-        TaskCommands::Edit { tid, desc, priority } => {
+        TaskCommands::Edit {
+            tid,
+            desc,
+            priority,
+        } => {
             let priority = priority
                 .map(|p| Priority::try_from(p.as_str()))
                 .transpose()?;
