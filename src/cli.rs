@@ -3,6 +3,7 @@
 //! All commands and subcommands are declared here using clap's derive macros.
 //! Parsed values flow into [`crate::dispatch`] for execution.
 
+use crate::models::{Priority, Status};
 use clap::{Parser, Subcommand};
 
 /// Root CLI entry point for `rtodo`.
@@ -64,42 +65,53 @@ pub enum TaskCommands {
     /// `--parent` adds this as a subtask of the given task ID (max depth: 2).
     Add {
         desc: String,
-        #[arg(short, long, default_value_t = String::from("medium"))]
-        priority: String,
+        #[arg(short, long, default_value_t = Priority::Medium)]
+        priority: Priority,
         #[arg(short = 'P', long)]
         parent: Option<u32>,
     },
 
     /// List all tasks in the active project, grouped by status.
+    ///
+    /// Pass a status positionally to filter: `new`, `in-progress`, `completed`.
+    /// Use `--pending` / `-p` to show only incomplete tasks (new + in-progress).
     Ls {
-        #[arg(short, long)]
-        status: Option<String>,
+        /// Filter by status: new, in-progress, completed
+        status: Option<Status>,
+
+        /// Show only incomplete tasks (new + in-progress)
+        #[arg(short, long, conflicts_with = "status")]
+        pending: bool,
     },
 
     /// Set a task as the active task by its ID.
     ///
     /// Also transitions the task status to `in_progress`.
-    Set { tid: u32 },
+    Start { tid: u32 },
 
-    /// Mark the active task as completed.
-    Completed,
+    /// Mark the task as completed. Defaults to active task
+    ///
+    /// --tid defaults to active task
+    Complete { tid: Option<u32> },
 
     /// Move a task to a specific status by its ID.
     ///
-    /// `status` accepts: `new`, `in_progress`, `completed`.
-    Move { tid: u32, status: String },
+    /// --tid defaults to active task
+    Move { tid: Option<u32>, status: Status },
 
     /// Delete a task by its ID.
     Delete { tid: u32 },
 
     /// Edit a task's description and/or priority.
     ///
+    /// --tid defaults to active task
     /// `--priority` accepts: `low`, `medium`, `high`.
     Edit {
-        tid: u32,
+        #[arg(short, long)]
+        tid: Option<u32>,
         #[arg(short, long)]
         desc: Option<String>,
         #[arg(short, long)]
-        priority: Option<String>,
+        priority: Option<Priority>,
     },
 }
