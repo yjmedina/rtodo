@@ -178,6 +178,11 @@ impl Project {
         description: Option<String>,
         priority: Option<Priority>,
     ) -> Result<&Task, String> {
+
+        if description.is_none() && priority.is_none() {
+            return Err(format!("No changes requested for task #{id}. Please provide a new description or priority."));
+        }
+
         let idx = self
             .find_task(id)
             .ok_or_else(|| format!("Task {id} not found."))?;

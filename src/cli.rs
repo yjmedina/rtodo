@@ -82,21 +82,26 @@ pub enum TaskCommands {
     Start { tid: u32 },
 
     /// Mark the task as completed. Defaults to active task
+    /// 
+    /// --tid defaults to active task
     Complete { tid: Option<u32> },
 
     /// Move a task to a specific status by its ID.
     ///
+    /// --tid defaults to active task
     /// `status` accepts: `new`, `in_progress`, `completed`.
-    Move { tid: u32, status: String },
+    Move { tid: Option<u32>, status: String },
 
     /// Delete a task by its ID.
     Delete { tid: u32 },
 
     /// Edit a task's description and/or priority.
     ///
+    /// --tid defaults to active task
     /// `--priority` accepts: `low`, `medium`, `high`.
     Edit {
-        tid: u32,
+        #[arg(short, long)]
+        tid: Option<u32>,
         #[arg(short, long)]
         desc: Option<String>,
         #[arg(short, long)]

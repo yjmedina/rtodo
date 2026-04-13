@@ -50,6 +50,12 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
 /// # Errors
 /// Returns `Err` if the task ID does not exist, the status/priority string is
 /// invalid, or there is no active task when one is required.
+pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, String> {
+        tid.or(project.active_task_id)
+        .ok_or("No task selected. Provide a task ID or set an active task with `rtodo task set <id>`.".into())
+    }
+
+
 pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
     match command {
         TaskCommands::Ls { status } => {
@@ -70,17 +76,16 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             println!("Active task: {task}");
         }
         TaskCommands::Complete { tid } => {
-            let id = tid.or(project.active_task_id).ok_or(
-                "No task selected. Provide a task ID or set an active task with `rtodo task set <id>`.",
-            )?;
-            if project.has_incomplete_subtasks(id) {
+            let tid = tid_or_active(project, tid)?;
+            if project.has_incomplete_subtasks(tid) {
                 return Err("Task has incomplete subtasks. Complete them first.".into());
             }
-            let task = project.move_task(id, Status::Completed)?;
+            let task = project.move_task(tid, Status::Completed)?;
             println!("Completed!: {task}");
         }
         TaskCommands::Move { tid, status } => {
             let status = Status::try_from(status.as_str())?;
+            let tid = tid_or_active(project, tid)?;
             if status == Status::Completed && project.has_incomplete_subtasks(tid) {
                 return Err("Task has incomplete subtasks. Complete them first.".into());
             }
@@ -96,6 +101,7 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             desc,
             priority,
         } => {
+            let tid = tid_or_active(project, tid)?;
             let priority = priority
                 .map(|p| Priority::try_from(p.as_str()))
                 .transpose()?;
