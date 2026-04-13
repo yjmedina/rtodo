@@ -3,6 +3,7 @@
 //! All commands and subcommands are declared here using clap's derive macros.
 //! Parsed values flow into [`crate::dispatch`] for execution.
 
+use crate::models::{Priority, Status};
 use clap::{Parser, Subcommand};
 
 /// Root CLI entry point for `rtodo`.
@@ -64,8 +65,8 @@ pub enum TaskCommands {
     /// `--parent` adds this as a subtask of the given task ID (max depth: 2).
     Add {
         desc: String,
-        #[arg(short, long, default_value_t = String::from("medium"))]
-        priority: String,
+        #[arg(short, long, default_value_t = Priority::Medium)]
+        priority: Priority,
         #[arg(short = 'P', long)]
         parent: Option<u32>,
     },
@@ -76,7 +77,7 @@ pub enum TaskCommands {
     /// Use `--pending` / `-p` to show only incomplete tasks (new + in-progress).
     Ls {
         /// Filter by status: new, in-progress, completed
-        status: Option<String>,
+        status: Option<Status>,
 
         /// Show only incomplete tasks (new + in-progress)
         #[arg(short, long, conflicts_with = "status")]
@@ -89,15 +90,14 @@ pub enum TaskCommands {
     Start { tid: u32 },
 
     /// Mark the task as completed. Defaults to active task
-    /// 
+    ///
     /// --tid defaults to active task
     Complete { tid: Option<u32> },
 
     /// Move a task to a specific status by its ID.
     ///
     /// --tid defaults to active task
-    /// `status` accepts: `new`, `in_progress`, `completed`.
-    Move { tid: Option<u32>, status: String },
+    Move { tid: Option<u32>, status: Status },
 
     /// Delete a task by its ID.
     Delete { tid: u32 },
@@ -112,6 +112,6 @@ pub enum TaskCommands {
         #[arg(short, long)]
         desc: Option<String>,
         #[arg(short, long)]
-        priority: Option<String>,
+        priority: Option<Priority>,
     },
 }
