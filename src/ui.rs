@@ -10,13 +10,13 @@
 //! Each "view" is a lightweight struct that borrows the data it needs to render.
 //! Implementing [`std::fmt::Display`] instead of returning `String` gives three
 //! benefits:
-//! 
+//!
 use std::cmp::Reverse;
 use std::fmt;
 
 use owo_colors::{OwoColorize, Stream, Style};
 
-use crate::models::{Project, Status, Task, ALL_STATUSES};
+use crate::models::{ALL_STATUSES, Project, Status, Task};
 use crate::style;
 use crate::workspace::Workspace;
 
@@ -110,7 +110,11 @@ fn write_section(
     let top_level = top_level_for_section(project, section_status, is_filtered);
 
     if top_level.is_empty() {
-        writeln!(f, "  {}", "(empty)".if_supports_color(Stream::Stdout, |v| v.dimmed()))?;
+        writeln!(
+            f,
+            "  {}",
+            "(empty)".if_supports_color(Stream::Stdout, |v| v.dimmed())
+        )?;
     } else {
         for task in top_level {
             write_task(f, project, task, section_status, is_filtered, desc_width)?;

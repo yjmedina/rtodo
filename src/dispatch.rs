@@ -79,11 +79,19 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             parent,
         } => {
             let task = project.add_task(desc, priority, parent)?;
-            println!("  {} {}", style::action_green("added"), style::fmt_task_action(task));
+            println!(
+                "  {} {}",
+                style::action_green("added"),
+                style::fmt_task_action(task)
+            );
         }
         TaskCommands::Start { tid } => {
             let task = project.set_active_task(tid)?;
-            println!("  {} {}", style::action_cyan("started"), style::fmt_task_action(task));
+            println!(
+                "  {} {}",
+                style::action_cyan("started"),
+                style::fmt_task_action(task)
+            );
         }
         TaskCommands::Complete { tid } => {
             let tid = tid_or_active(project, tid)?;
@@ -91,7 +99,11 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
                 return Err("Task has incomplete subtasks. Complete them first.".into());
             }
             let task = project.move_task(tid, Status::Completed)?;
-            println!("  {} {}", style::action_green("done"), style::fmt_task_action(task));
+            println!(
+                "  {} {}",
+                style::action_green("done"),
+                style::fmt_task_action(task)
+            );
         }
         TaskCommands::Move { tid, status } => {
             let tid = tid_or_active(project, tid)?;
@@ -99,11 +111,19 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
                 return Err("Task has incomplete subtasks. Complete them first.".into());
             }
             let task = project.move_task(tid, status)?;
-            println!("  {} {}", style::action_green("moved"), style::fmt_task_action(task));
+            println!(
+                "  {} {}",
+                style::action_green("moved"),
+                style::fmt_task_action(task)
+            );
         }
         TaskCommands::Delete { tid } => {
             let task = project.delete_task(tid)?;
-            println!("  {} {}", style::action_red("removed"), style::fmt_task_action(&task));
+            println!(
+                "  {} {}",
+                style::action_red("removed"),
+                style::fmt_task_action(&task)
+            );
         }
         TaskCommands::Edit {
             tid,
@@ -112,7 +132,11 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
         } => {
             let tid = tid_or_active(project, tid)?;
             let task = project.edit_task(tid, desc, priority)?;
-            println!("  {} {}", style::action_green("updated"), style::fmt_task_action(task));
+            println!(
+                "  {} {}",
+                style::action_green("updated"),
+                style::fmt_task_action(task)
+            );
         }
     }
 

@@ -207,7 +207,6 @@ impl Project {
         filtered_tasks.sort_by_key(|&t| Reverse(&t.priority));
         filtered_tasks
     }
-
 }
 
 impl fmt::Display for Project {

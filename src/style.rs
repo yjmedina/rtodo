@@ -88,7 +88,10 @@ pub fn fmt_id(id: u32) -> String {
 /// Dimmed date string (`YYYY-MM-DD`).
 pub fn fmt_date(dt: &DateTime<Utc>) -> String {
     let s = dt.format(DATE_FORMAT).to_string();
-    format!("{}", s.if_supports_color(STDOUT, |v| v.style(Style::new().dimmed())))
+    format!(
+        "{}",
+        s.if_supports_color(STDOUT, |v| v.style(Style::new().dimmed()))
+    )
 }
 
 /// Two-char priority symbol with semantic color.
@@ -143,8 +146,7 @@ pub fn fmt_status_header(status: &Status) -> String {
             "●",
             format!(
                 "{}",
-                "In Progress"
-                    .if_supports_color(STDOUT, |v| v.style(Style::new().yellow().bold()))
+                "In Progress".if_supports_color(STDOUT, |v| v.style(Style::new().yellow().bold()))
             ),
         ),
         Status::New => (
@@ -158,15 +160,16 @@ pub fn fmt_status_header(status: &Status) -> String {
             "✓",
             format!(
                 "{}",
-                "Completed"
-                    .if_supports_color(STDOUT, |v| v.style(Style::new().green().bold()))
+                "Completed".if_supports_color(STDOUT, |v| v.style(Style::new().green().bold()))
             ),
         ),
     };
     // Fixed-length separator — avoids needing to know terminal width.
     let sep = format!(
         "{}",
-        "─".repeat(44).if_supports_color(STDOUT, |v| v.style(Style::new().dimmed()))
+        "─"
+            .repeat(44)
+            .if_supports_color(STDOUT, |v| v.style(Style::new().dimmed()))
     );
     format!("{symbol} {label} {sep}")
 }
