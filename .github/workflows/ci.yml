@@ -2,7 +2,23 @@ name: CI
 
 on:
   push:
-    branches: ["main", "develop", "feat/**", "fix/**", "chore/**"]
+    branches:
+        - main
+        - develop
+        - "feature/**"
+        - "feat/**"
+        - "fix/**"
+        - "bugfix/**"
+        - "hotfix/**"
+        - "chore/**"
+        - "refactor/**"
+        - "perf/**"
+        - "test/**"
+        - "docs/**"
+        - "ci/**"
+        - "build/**"
+        - "release/**"
+        - "revert/**"
     tags-ignore: ["v*"]
   pull_request:
     branches: ["main"]
