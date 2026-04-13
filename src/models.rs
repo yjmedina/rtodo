@@ -211,13 +211,10 @@ impl Project {
     /// When `status` is `Some`, a top-level task is included if it matches OR any of
     /// its subtasks match; only matching subtasks are shown. When `None`, top-level
     /// tasks are grouped by their own status and all subtasks are shown beneath them.
-    pub fn task_summary(&self, status: Option<Status>) -> String {
+    pub fn task_summary(&self, filter: Option<&[Status]>) -> String {
         let mut out = String::new();
 
-        let statuses: &[Status] = match &status {
-            Some(s) => std::slice::from_ref(s),
-            None => ALL_STATUSES,
-        };
+        let statuses: &[Status] = filter.unwrap_or(ALL_STATUSES);
 
         for section_status in statuses {
             writeln!(out, "{section_status}").unwrap();
@@ -227,7 +224,7 @@ impl Project {
                 .iter()
                 .filter(|t| t.parent_id.is_none())
                 .filter(|t| {
-                    if status.is_some() {
+                    if filter.is_some() {
                         t.status == *section_status
                             || self
                                 .subtasks_of(t.id)
@@ -257,7 +254,7 @@ impl Project {
                         .count();
                     let total = subtasks.len();
                     writeln!(out, "  {t}  ({done}/{total})").unwrap();
-                    let visible: Vec<&&Task> = if status.is_some() {
+                    let visible: Vec<&&Task> = if filter.is_some() {
                         subtasks
                             .iter()
                             .filter(|s| s.status == *section_status)
@@ -310,10 +307,10 @@ impl TryFrom<&str> for Status {
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "completed" => Ok(Status::Completed),
-            "in_progress" => Ok(Status::InProgress),
+            "in_progress" | "in-progress" => Ok(Status::InProgress),
             "new" => Ok(Status::New),
             _ => Err(format!(
-                "Unknown status \"{s}\". Valid values: new, in_progress, completed."
+                "Unknown status \"{s}\". Valid values: new, in-progress, completed."
             )),
         }
     }

@@ -58,9 +58,15 @@ pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, String>
 
 pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
     match command {
-        TaskCommands::Ls { status } => {
-            let status = status.map(|s| Status::try_from(s.as_str())).transpose()?;
-            println!("{}", project.task_summary(status));
+        TaskCommands::Ls { status, pending } => {
+            let statuses: Option<Vec<Status>> = if pending {
+                Some(vec![Status::New, Status::InProgress])
+            } else if let Some(s) = status {
+                Some(vec![Status::try_from(s.as_str())?])
+            } else {
+                None
+            };
+            println!("{}", project.task_summary(statuses.as_deref()));
         }
         TaskCommands::Add {
             desc,

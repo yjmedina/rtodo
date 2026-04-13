@@ -71,9 +71,16 @@ pub enum TaskCommands {
     },
 
     /// List all tasks in the active project, grouped by status.
+    ///
+    /// Pass a status positionally to filter: `new`, `in-progress`, `completed`.
+    /// Use `--pending` / `-p` to show only incomplete tasks (new + in-progress).
     Ls {
-        #[arg(short, long)]
+        /// Filter by status: new, in-progress, completed
         status: Option<String>,
+
+        /// Show only incomplete tasks (new + in-progress)
+        #[arg(short, long, conflicts_with = "status")]
+        pending: bool,
     },
 
     /// Set a task as the active task by its ID.
