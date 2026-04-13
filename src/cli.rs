@@ -79,10 +79,10 @@ pub enum TaskCommands {
     /// Set a task as the active task by its ID.
     ///
     /// Also transitions the task status to `in_progress`.
-    Set { tid: u32 },
+    Start { tid: u32 },
 
-    /// Mark the active task as completed.
-    Completed,
+    /// Mark the task as completed. Defaults to active task
+    Complete { tid: Option<u32> },
 
     /// Move a task to a specific status by its ID.
     ///

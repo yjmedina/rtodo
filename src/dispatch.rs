@@ -65,18 +65,18 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
             let task = project.add_task(desc, priority, parent)?;
             println!("Task added successfully\n{task}");
         }
-        TaskCommands::Set { tid } => {
+        TaskCommands::Start { tid } => {
             let task = project.set_active_task(tid)?;
             println!("Active task: {task}");
         }
-        TaskCommands::Completed => {
-            let id = project.active_task_id.ok_or(
-                "No active task. Use `rtodo task set <id>` or `rtodo task move <id> <status>` instead.",
+        TaskCommands::Complete { tid } => {
+            let id = tid.or(project.active_task_id).ok_or(
+                "No task selected. Provide a task ID or set an active task with `rtodo task set <id>`.",
             )?;
             if project.has_incomplete_subtasks(id) {
                 return Err("Task has incomplete subtasks. Complete them first.".into());
             }
-            let task = project.active_task_completed()?;
+            let task = project.move_task(id, Status::Completed)?;
             println!("Completed!: {task}");
         }
         TaskCommands::Move { tid, status } => {
