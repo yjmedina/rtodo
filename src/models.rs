@@ -10,9 +10,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt;
-use std::fmt::Write;
 const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
-const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
+/// All status variants in display order (in-progress → new → completed).
+/// Exposed so [`crate::ui`] can iterate them without duplicating the ordering.
+pub const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
 
 /// A named project that contains a list of tasks.
 #[derive(Debug, Serialize, Deserialize)]
@@ -207,72 +208,6 @@ impl Project {
         filtered_tasks
     }
 
-    /// Build a formatted string listing tasks grouped by status, with subtasks indented.
-    ///
-    /// When `status` is `Some`, a top-level task is included if it matches OR any of
-    /// its subtasks match; only matching subtasks are shown. When `None`, top-level
-    /// tasks are grouped by their own status and all subtasks are shown beneath them.
-    pub fn task_summary(&self, filter: Option<&[Status]>) -> String {
-        let mut out = String::new();
-
-        let is_filtered = filter.is_some();
-        let statuses: &[Status] = filter.unwrap_or(ALL_STATUSES);
-
-        for section_status in statuses {
-            writeln!(out, "{section_status}").unwrap();
-
-            let mut top_level: Vec<&Task> = self
-                .tasks
-                .iter()
-                .filter(|t| t.parent_id.is_none())
-                .filter(|t| {
-                    if is_filtered {
-                        t.status == *section_status
-                            || self
-                                .subtasks_of(t.id)
-                                .iter()
-                                .any(|s| s.status == *section_status)
-                    } else {
-                        t.status == *section_status
-                    }
-                })
-                .collect();
-
-            top_level.sort_by_key(|t| Reverse(&t.priority));
-
-            if top_level.is_empty() {
-                writeln!(out, "  (none)").unwrap();
-                continue;
-            }
-
-            for t in top_level {
-                let subtasks = self.subtasks_of(t.id);
-                if subtasks.is_empty() {
-                    writeln!(out, "  {t}").unwrap();
-                } else {
-                    let done = subtasks
-                        .iter()
-                        .filter(|s| s.status == Status::Completed)
-                        .count();
-                    let total = subtasks.len();
-                    writeln!(out, "  {t}  ({done}/{total})").unwrap();
-                    let visible: Vec<&&Task> = if is_filtered {
-                        subtasks
-                            .iter()
-                            .filter(|s| s.status == *section_status)
-                            .collect()
-                    } else {
-                        subtasks.iter().collect()
-                    };
-                    for sub in visible {
-                        writeln!(out, "      {sub}").unwrap();
-                    }
-                }
-            }
-        }
-
-        out
-    }
 }
 
 impl fmt::Display for Project {
