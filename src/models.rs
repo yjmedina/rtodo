@@ -178,6 +178,12 @@ impl Project {
         description: Option<String>,
         priority: Option<Priority>,
     ) -> Result<&Task, String> {
+        if description.is_none() && priority.is_none() {
+            return Err(format!(
+                "No changes requested for task #{id}. Please provide a new description or priority."
+            ));
+        }
+
         let idx = self
             .find_task(id)
             .ok_or_else(|| format!("Task {id} not found."))?;
@@ -206,13 +212,11 @@ impl Project {
     /// When `status` is `Some`, a top-level task is included if it matches OR any of
     /// its subtasks match; only matching subtasks are shown. When `None`, top-level
     /// tasks are grouped by their own status and all subtasks are shown beneath them.
-    pub fn task_summary(&self, status: Option<Status>) -> String {
+    pub fn task_summary(&self, filter: Option<&[Status]>) -> String {
         let mut out = String::new();
 
-        let statuses: &[Status] = match &status {
-            Some(s) => std::slice::from_ref(s),
-            None => ALL_STATUSES,
-        };
+        let is_filtered = filter.is_some();
+        let statuses: &[Status] = filter.unwrap_or(ALL_STATUSES);
 
         for section_status in statuses {
             writeln!(out, "{section_status}").unwrap();
@@ -222,7 +226,7 @@ impl Project {
                 .iter()
                 .filter(|t| t.parent_id.is_none())
                 .filter(|t| {
-                    if status.is_some() {
+                    if is_filtered {
                         t.status == *section_status
                             || self
                                 .subtasks_of(t.id)
@@ -252,7 +256,7 @@ impl Project {
                         .count();
                     let total = subtasks.len();
                     writeln!(out, "  {t}  ({done}/{total})").unwrap();
-                    let visible: Vec<&&Task> = if status.is_some() {
+                    let visible: Vec<&&Task> = if is_filtered {
                         subtasks
                             .iter()
                             .filter(|s| s.status == *section_status)
@@ -285,33 +289,15 @@ impl fmt::Display for Project {
 }
 
 /// Lifecycle state of a task.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, clap::ValueEnum)]
 pub enum Status {
     /// Task has been created but work has not started.
     New,
     /// Task is actively being worked on.
+    #[value(name = "in-progress")]
     InProgress,
     /// Task has been finished.
     Completed,
-}
-
-impl TryFrom<&str> for Status {
-    type Error = String;
-
-    /// Parse a status from its string representation.
-    ///
-    /// # Errors
-    /// Returns `Err` if `s` is not one of `new`, `in_progress`, `completed`.
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s {
-            "completed" => Ok(Status::Completed),
-            "in_progress" => Ok(Status::InProgress),
-            "new" => Ok(Status::New),
-            _ => Err(format!(
-                "Unknown status \"{s}\". Valid values: new, in_progress, completed."
-            )),
-        }
-    }
 }
 
 impl fmt::Display for Status {
@@ -325,7 +311,7 @@ impl fmt::Display for Status {
 }
 
 /// Importance level of a task.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, clap::ValueEnum)]
 pub enum Priority {
     /// Low importance — tackle after `Medium` and `High` tasks.
     Low,
@@ -333,25 +319,6 @@ pub enum Priority {
     Medium,
     /// High importance — shown with a `!` marker in listings.
     High,
-}
-
-impl TryFrom<&str> for Priority {
-    type Error = String;
-
-    /// Parse a priority from its string representation.
-    ///
-    /// # Errors
-    /// Returns `Err` if `s` is not one of `low`, `medium`, `high`.
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s {
-            "low" => Ok(Priority::Low),
-            "medium" => Ok(Priority::Medium),
-            "high" => Ok(Priority::High),
-            _ => Err(format!(
-                "Unknown priority \"{s}\". Valid values: low, medium, high."
-            )),
-        }
-    }
 }
 
 impl fmt::Display for Priority {
