@@ -4,6 +4,8 @@
 //! or [`exec_task_cmd`] in [`dispatch`]. Workspace state is loaded before
 //! each command and persisted afterward.
 
+use std::io::IsTerminal;
+
 use clap::Parser;
 use rtodo::cli::{CLI, Commands};
 use rtodo::dispatch::{exec_project_cmd, exec_task_cmd};
@@ -33,6 +35,12 @@ fn save_workspace(workspace: &Workspace) -> Result<(), String> {
 /// # Errors
 /// Returns `Err` with a user-facing message on any failure.
 fn run() -> Result<(), String> {
+    // Disable ANSI color codes when stdout is not a TTY (e.g. piped to a file).
+    // `IsTerminal` is a stable trait since Rust 1.70.
+    if !std::io::stdout().is_terminal() {
+        owo_colors::set_override(false);
+    }
+
     let cli = CLI::parse();
 
     match cli.command {
@@ -50,7 +58,7 @@ fn run() -> Result<(), String> {
                 .active_project()
                 .ok_or("No active project. Run `rtodo project set <id>` to set one.")?;
             exec_task_cmd(command, project)?;
-            // this could be improve to only save the project for performance.
+            // this could be improved to only save the project for performance.
             save_workspace(&workspace)?;
         }
     };
@@ -59,7 +67,7 @@ fn run() -> Result<(), String> {
 
 fn main() {
     if let Err(msg) = run() {
-        eprintln!("{}", msg);
+        eprintln!("  {} {}", rtodo::style::error_prefix(), msg);
         std::process::exit(1);
     }
 }

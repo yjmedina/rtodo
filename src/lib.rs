@@ -16,4 +16,6 @@
 pub mod cli;
 pub mod dispatch;
 pub mod models;
+pub mod style;
+pub mod ui;
 pub mod workspace;
