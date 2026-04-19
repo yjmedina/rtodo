@@ -1,19 +1,16 @@
 //! Core domain types for `rtodo`.
 //!
-//! This module defines the data model:
-//! - [`Project`] — a named container that holds [`Task`]s.
-//! - [`Task`] — a unit of work with a [`Status`] and [`Priority`].
-//! - [`Status`] — lifecycle state of a task (`new` → `in_progress` → `completed`).
-//! - [`Priority`] — importance level of a task (`low`, `medium`, `high`).
+
+pub mod priority;
+pub mod status;
+pub mod task;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt;
-const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
-/// All status variants in display order (in-progress → new → completed).
-/// Exposed so [`crate::ui`] can iterate them without duplicating the ordering.
-pub const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
+
+pub use crate::models::task::{CREATED_AT_FORMAT, Priority, Status, Task};
 
 /// A named project that contains a list of tasks.
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +26,6 @@ pub struct Project {
     /// Timestamp when this project was created.
     pub created_at: DateTime<Utc>,
 }
-
 impl Project {
     /// Create a new empty project with the given `id` and `name`.
     pub fn new(id: u32, name: String) -> Self {
@@ -217,108 +213,6 @@ impl fmt::Display for Project {
             self.id,
             self.name,
             self.task_count(),
-            self.created_at.format(CREATED_AT_FORMAT)
-        )
-    }
-}
-
-/// Lifecycle state of a task.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, clap::ValueEnum)]
-pub enum Status {
-    /// Task has been created but work has not started.
-    New,
-    /// Task is actively being worked on.
-    #[value(name = "in-progress")]
-    InProgress,
-    /// Task has been finished.
-    Completed,
-}
-
-impl fmt::Display for Status {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Status::New => write!(f, "new"),
-            Status::InProgress => write!(f, "in_progress"),
-            Status::Completed => write!(f, "completed"),
-        }
-    }
-}
-
-/// Importance level of a task.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, clap::ValueEnum)]
-pub enum Priority {
-    /// Low importance — tackle after `Medium` and `High` tasks.
-    Low,
-    /// Default importance level.
-    Medium,
-    /// High importance — shown with a `!` marker in listings.
-    High,
-}
-
-impl fmt::Display for Priority {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Priority::Low => write!(f, "low"),
-            Priority::Medium => write!(f, "medium"),
-            Priority::High => write!(f, "high"),
-        }
-    }
-}
-
-/// A single unit of work within a [`Project`].
-///
-/// Implements [`fmt::Debug`] via derive, which allows `println!("{:#?}", task)`.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Task {
-    /// Unique identifier within the parent project.
-    pub id: u32,
-    /// ID of the parent task, or `None` if this is a top-level task.
-    pub parent_id: Option<u32>,
-    /// Human-readable description of the work to be done.
-    pub description: String,
-    /// Relative importance of this task.
-    pub priority: Priority,
-    /// Current lifecycle state of this task.
-    pub status: Status,
-    /// Timestamp when this task was created.
-    pub created_at: DateTime<Utc>,
-}
-
-impl Task {
-    /// Create a new task with the given fields and the current UTC timestamp.
-    pub fn new(
-        id: u32,
-        description: String,
-        priority: Priority,
-        status: Status,
-        parent_id: Option<u32>,
-    ) -> Self {
-        Task {
-            id,
-            parent_id,
-            description,
-            priority,
-            status,
-            created_at: Utc::now(),
-        }
-    }
-}
-
-impl fmt::Display for Task {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let marker = if self.priority == Priority::High {
-            "!"
-        } else {
-            " "
-        };
-        write!(
-            f,
-            "[{}]{} {} ({}) [{}] -- ({})",
-            self.id,
-            marker,
-            self.description,
-            self.priority,
-            self.status,
             self.created_at.format(CREATED_AT_FORMAT)
         )
     }

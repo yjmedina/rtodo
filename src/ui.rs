@@ -16,11 +16,13 @@ use std::fmt;
 
 use owo_colors::{OwoColorize, Stream, Style};
 
-use crate::models::{ALL_STATUSES, Project, Status, Task};
+use crate::models::{Project, Status, Task};
 use crate::style;
 use crate::workspace::Workspace;
 
 // ── Task list view ────────────────────────────────────────────────────────────
+
+const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
 
 /// A view over a [`Project`]'s task list, ready for colorized terminal display.
 ///
