@@ -18,8 +18,8 @@ pub enum AppError {
     TaskHasIncompleteSubtasks { id: u32 },
     #[error("no active task")]
     NoActiveTask,
-    #[error("I/O error: {0}")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[error("JSON error: {0}")]
+    #[error(transparent)]
     Json(#[from] serde_json::Error),
 }
