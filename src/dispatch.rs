@@ -16,7 +16,7 @@ use crate::{style, ui};
 ///
 /// # Errors
 /// Returns `Err` if the requested project ID does not exist.
-pub fn exec_project_cmd(
+pub fn dispatch_project(
     command: ProjectCommands,
     workspace: &mut Workspace,
 ) -> Result<(), AppError> {
@@ -33,7 +33,7 @@ pub fn exec_project_cmd(
             println!("  {} {}", style::action_cyan("active"), p);
         }
         ProjectCommands::UnSet => {
-            workspace.unset_active_project();
+            workspace.clear_active_project();
             println!("  {} no active project", style::action_red("unset"));
         }
         ProjectCommands::Delete { pid } => {
@@ -64,7 +64,7 @@ pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, AppErro
 /// # Errors
 /// Returns `Err` if the task ID does not exist, the status/priority string is
 /// invalid, or there is no active task when one is required.
-pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), AppError> {
+pub fn dispatch_task(command: TaskCommands, project: &mut Project) -> Result<(), AppError> {
     match command {
         TaskCommands::Ls { status, pending } => {
             let statuses: Option<Vec<Status>> = if pending {

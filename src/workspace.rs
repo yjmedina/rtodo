@@ -64,15 +64,20 @@ impl Workspace {
 
     /// Return the index of the project with `id` within `self.projects`, or
     /// `None` if not found.
-    pub fn find_project(&self, id: u32) -> Option<usize> {
-        self.projects.iter().position(|p| p.id == id)
+    pub fn get_project(&self, id: u32) -> Result<usize, AppError> {
+        self.projects
+            .iter()
+            .position(|p| p.id == id)
+            .ok_or(AppError::ProjectNotFound { id })
     }
 
     /// Return a mutable reference to the active project, or `None` if no
     /// project is currently active.
-    pub fn active_project(&mut self) -> Option<&mut Project> {
-        let idx = self.find_project(self.active_project_id?)?;
-        Some(&mut self.projects[idx])
+    pub fn active_project(&mut self) -> Result<&mut Project, AppError> {
+        let idx = self
+            .get_project(self.active_project_id.ok_or(AppError::NoActiveProject)?)
+            .map_err(|_| AppError::NoActiveProject)?;
+        Ok(&mut self.projects[idx])
     }
 
     /// Set project `id` as the active project.
@@ -80,15 +85,13 @@ impl Workspace {
     /// # Errors
     /// Returns `Err` if no project with `id` exists in the workspace.
     pub fn set_active_project(&mut self, id: u32) -> Result<&mut Project, AppError> {
-        let idx = self
-            .find_project(id)
-            .ok_or(AppError::ProjectNotFound { id })?;
+        let idx = self.get_project(id)?;
         self.active_project_id = Some(id);
         Ok(&mut self.projects[idx])
     }
 
     /// Clear the active project selection.
-    pub fn unset_active_project(&mut self) {
+    pub fn clear_active_project(&mut self) {
         self.active_project_id = None;
     }
 
@@ -155,9 +158,7 @@ impl Workspace {
 
     /// Delete a project
     pub fn delete_project(&mut self, id: u32) -> Result<Project, AppError> {
-        let idx = self
-            .find_project(id)
-            .ok_or(AppError::ProjectNotFound { id })?;
+        let idx = self.get_project(id)?;
         // reset active project id
         if self.active_project_id == Some(id) {
             self.active_project_id = None
@@ -167,9 +168,7 @@ impl Workspace {
 
     /// Delete a project
     pub fn edit_project(&mut self, id: u32, name: String) -> Result<&Project, AppError> {
-        let idx = self
-            .find_project(id)
-            .ok_or(AppError::ProjectNotFound { id })?;
+        let idx = self.get_project(id)?;
         self.projects[idx].name = name;
         Ok(&self.projects[idx])
     }

@@ -19,5 +19,5 @@ fn find_activate_task_and_simulate_completed() {
     project.active_task_id = None;
 
     let task = project.active_task();
-    assert!(task.is_none());
+    assert!(task.is_err());
 }

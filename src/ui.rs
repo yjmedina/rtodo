@@ -85,7 +85,7 @@ fn top_level_for_section<'a>(
             if is_filtered {
                 t.status == *section_status
                     || project
-                        .subtasks_of(t.id)
+                        .subtasks(t.id)
                         .iter()
                         .any(|s| s.status == *section_status)
             } else {
@@ -135,7 +135,7 @@ fn write_task(
     is_filtered: bool,
     desc_width: usize,
 ) -> fmt::Result {
-    let subtasks = project.subtasks_of(task.id);
+    let subtasks = project.subtasks(task.id);
     let is_active = Some(task.id) == project.active_task_id;
     let line = style::fmt_task_line(task, is_active, desc_width);
 

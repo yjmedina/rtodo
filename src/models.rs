@@ -72,7 +72,7 @@ impl Project {
     }
 
     /// Return all direct subtasks of `task_id`, in insertion order.
-    pub fn subtasks_of(&self, task_id: u32) -> Vec<&Task> {
+    pub fn subtasks(&self, task_id: u32) -> Vec<&Task> {
         self.tasks
             .iter()
             .filter(|t| t.parent_id == Some(task_id))
@@ -81,7 +81,7 @@ impl Project {
 
     /// Return `true` if `task_id` has at least one non-`Completed` subtask.
     pub fn has_incomplete_subtasks(&self, task_id: u32) -> bool {
-        self.subtasks_of(task_id)
+        self.subtasks(task_id)
             .iter()
             .any(|t| t.status != Status::Completed)
     }
@@ -91,8 +91,7 @@ impl Project {
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
     pub fn delete_task(&mut self, id: u32) -> Result<Task, AppError> {
-        self.find_task(id)
-            .ok_or_else(|| AppError::TaskNotFound { id })?;
+        self.get_task(id)?;
         // Clear active_task if it's the deleted task or one of its subtasks
         if self.active_task_id == Some(id)
             || self
@@ -109,7 +108,7 @@ impl Project {
         // Cascade: remove subtasks
         self.tasks.retain(|t| t.parent_id != Some(id));
         // Re-find after retain (indices may have shifted)
-        let pos = self.find_task(id).unwrap();
+        let pos = self.get_task(id).unwrap();
         Ok(self.tasks.swap_remove(pos))
     }
 
@@ -119,9 +118,10 @@ impl Project {
     }
 
     /// Return the active task, or `None` if no task is currently active.
-    pub fn active_task(&self) -> Option<&Task> {
-        self.find_task(self.active_task_id?)
+    pub fn active_task(&self) -> Result<&Task, AppError> {
+        self.get_task(self.active_task_id.ok_or(AppError::NoActiveTask)?)
             .map(|idx| &self.tasks[idx])
+            .map_err(|_| AppError::NoActiveTask)
     }
 
     /// Set task `id` as the active task and transition it to `InProgress`.
@@ -129,9 +129,7 @@ impl Project {
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
     pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, AppError> {
-        let idx = self
-            .find_task(id)
-            .ok_or_else(|| AppError::TaskNotFound { id })?;
+        let idx = self.get_task(id)?;
         self.active_task_id = Some(id);
         let task = &mut self.tasks[idx];
         task.status = Status::InProgress;
@@ -143,9 +141,7 @@ impl Project {
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
     pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, AppError> {
-        let idx = self
-            .find_task(id)
-            .ok_or_else(|| AppError::TaskNotFound { id })?;
+        let idx = self.get_task(id)?;
         self.tasks[idx].status = status;
         Ok(&self.tasks[idx])
     }
@@ -154,14 +150,17 @@ impl Project {
     ///
     /// # Errors
     /// Returns `Err` if there is no active task.
-    pub fn active_task_completed(&mut self) -> Result<&Task, AppError> {
+    pub fn complete_active_task(&mut self) -> Result<&Task, AppError> {
         let id = self.active_task_id.ok_or(AppError::NoActiveTask)?;
         self.move_task(id, Status::Completed)
     }
 
     /// Return the index of task `id` within `self.tasks`, or `None` if not found.
-    pub fn find_task(&self, id: u32) -> Option<usize> {
-        self.tasks.iter().position(|t| t.id == id)
+    pub fn get_task(&self, id: u32) -> Result<usize, AppError> {
+        self.tasks
+            .iter()
+            .position(|t| t.id == id)
+            .ok_or(AppError::TaskNotFound { id })
     }
 
     /// Edit description and/or priority of task `id`.
@@ -174,9 +173,7 @@ impl Project {
         description: Option<String>,
         priority: Option<Priority>,
     ) -> Result<&Task, AppError> {
-        let idx = self
-            .find_task(id)
-            .ok_or_else(|| AppError::TaskNotFound { id })?;
+        let idx = self.get_task(id)?;
 
         if let Some(desc) = description {
             self.tasks[idx].description = desc;
@@ -191,7 +188,7 @@ impl Project {
     ///
     /// Lifetimes are explicit here for practice — the returned references
     /// borrow from `self`.
-    pub fn tasks_by_status(&self, status: &Status) -> Vec<&Task> {
+    pub fn tasks_with_status(&self, status: &Status) -> Vec<&Task> {
         let mut filtered_tasks: Vec<&Task> =
             self.tasks.iter().filter(|&t| t.status == *status).collect();
         filtered_tasks.sort_by_key(|&t| Reverse(&t.priority));
@@ -313,11 +310,11 @@ mod tests {
             .add_task(String::from("My Second task"), Priority::Low, None)
             .unwrap();
         let task = project.active_task();
-        assert!(task.is_none());
+        assert!(task.is_err());
     }
 
     #[test]
-    fn find_task() {
+    fn get_task() {
         let mut project = get_project();
         project
             .add_task(String::from("My first task"), Priority::Low, None)
@@ -325,7 +322,7 @@ mod tests {
         project
             .add_task(String::from("My Second task"), Priority::Low, None)
             .unwrap();
-        let idx = project.find_task(0).expect("Task 0 must exists");
+        let idx = project.get_task(0).expect("Task 0 must exists");
         assert_eq!(idx, 0);
         assert_eq!(&project.tasks[idx].description, "My first task");
     }
@@ -339,7 +336,7 @@ mod tests {
         project
             .add_task(String::from("My Second task"), Priority::Low, None)
             .unwrap();
-        let task = project.find_task(99);
-        assert!(task.is_none());
+        let task = project.get_task(99);
+        assert!(task.is_err());
     }
 }
