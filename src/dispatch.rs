@@ -4,6 +4,7 @@
 //! workspace and project models. Each function handles one family of subcommands.
 
 use crate::cli::{ProjectCommands, TaskCommands};
+use crate::error::AppError;
 use crate::models::{Project, Status};
 use crate::workspace::Workspace;
 use crate::{style, ui};
@@ -15,7 +16,10 @@ use crate::{style, ui};
 ///
 /// # Errors
 /// Returns `Err` if the requested project ID does not exist.
-pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> Result<(), String> {
+pub fn exec_project_cmd(
+    command: ProjectCommands,
+    workspace: &mut Workspace,
+) -> Result<(), AppError> {
     match command {
         ProjectCommands::Add { name } => {
             let p = workspace.add_project(name);
@@ -48,11 +52,8 @@ pub fn exec_project_cmd(command: ProjectCommands, workspace: &mut Workspace) -> 
 ///
 /// # Errors
 /// Returns `Err` if both `tid` and the active task are `None`.
-pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, String> {
-    tid.or(project.active_task_id).ok_or(
-        "No task selected. Provide a task ID or set an active task with `rtodo task start <id>`."
-            .into(),
-    )
+pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, AppError> {
+    tid.or(project.active_task_id).ok_or(AppError::NoActiveTask)
 }
 
 /// Execute a `task` subcommand against the active project.
@@ -63,7 +64,7 @@ pub fn tid_or_active(project: &Project, tid: Option<u32>) -> Result<u32, String>
 /// # Errors
 /// Returns `Err` if the task ID does not exist, the status/priority string is
 /// invalid, or there is no active task when one is required.
-pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), String> {
+pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(), AppError> {
     match command {
         TaskCommands::Ls { status, pending } => {
             let statuses: Option<Vec<Status>> = if pending {
@@ -96,7 +97,7 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
         TaskCommands::Complete { tid } => {
             let tid = tid_or_active(project, tid)?;
             if project.has_incomplete_subtasks(tid) {
-                return Err("Task has incomplete subtasks. Complete them first.".into());
+                return Err(AppError::TaskHasIncompleteSubtasks { id: tid });
             }
             let task = project.move_task(tid, Status::Completed)?;
             println!(
@@ -108,7 +109,7 @@ pub fn exec_task_cmd(command: TaskCommands, project: &mut Project) -> Result<(),
         TaskCommands::Move { tid, status } => {
             let tid = tid_or_active(project, tid)?;
             if status == Status::Completed && project.has_incomplete_subtasks(tid) {
-                return Err("Task has incomplete subtasks. Complete them first.".into());
+                return Err(AppError::TaskHasIncompleteSubtasks { id: tid });
             }
             let task = project.move_task(tid, status)?;
             println!(

@@ -5,6 +5,7 @@ pub mod priority;
 pub mod status;
 pub mod task;
 
+use crate::error::AppError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -47,15 +48,15 @@ impl Project {
         description: String,
         priority: Priority,
         parent_id: Option<u32>,
-    ) -> Result<&Task, String> {
+    ) -> Result<&Task, AppError> {
         if let Some(pid) = parent_id {
             let parent = self
                 .tasks
                 .iter()
                 .find(|t| t.id == pid)
-                .ok_or_else(|| format!("Task {pid} not found."))?;
+                .ok_or_else(|| AppError::TaskNotFound { id: pid })?;
             if parent.parent_id.is_some() {
-                return Err("Cannot add subtask to a subtask (max depth: 2).".into());
+                return Err(AppError::SubtaskDepthExceeded);
             }
         }
         let id = self
@@ -89,9 +90,9 @@ impl Project {
     ///
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
-    pub fn delete_task(&mut self, id: u32) -> Result<Task, String> {
+    pub fn delete_task(&mut self, id: u32) -> Result<Task, AppError> {
         self.find_task(id)
-            .ok_or_else(|| format!("Task {id} not found."))?;
+            .ok_or_else(|| AppError::TaskNotFound { id })?;
         // Clear active_task if it's the deleted task or one of its subtasks
         if self.active_task_id == Some(id)
             || self
@@ -127,10 +128,10 @@ impl Project {
     ///
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
-    pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, String> {
+    pub fn set_active_task(&mut self, id: u32) -> Result<&mut Task, AppError> {
         let idx = self
             .find_task(id)
-            .ok_or_else(|| format!("Task {id} not found."))?;
+            .ok_or_else(|| AppError::TaskNotFound { id })?;
         self.active_task_id = Some(id);
         let task = &mut self.tasks[idx];
         task.status = Status::InProgress;
@@ -141,10 +142,10 @@ impl Project {
     ///
     /// # Errors
     /// Returns `Err` if no task with `id` exists in this project.
-    pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, String> {
+    pub fn move_task(&mut self, id: u32, status: Status) -> Result<&Task, AppError> {
         let idx = self
             .find_task(id)
-            .ok_or_else(|| format!("Task {id} not found."))?;
+            .ok_or_else(|| AppError::TaskNotFound { id })?;
         self.tasks[idx].status = status;
         Ok(&self.tasks[idx])
     }
@@ -153,10 +154,8 @@ impl Project {
     ///
     /// # Errors
     /// Returns `Err` if there is no active task.
-    pub fn active_task_completed(&mut self) -> Result<&Task, String> {
-        let id = self.active_task_id.ok_or(
-            "No active task. Use `rtodo task set <id>` or `rtodo task move <id> <status>` instead.",
-        )?;
+    pub fn active_task_completed(&mut self) -> Result<&Task, AppError> {
+        let id = self.active_task_id.ok_or(AppError::NoActiveTask)?;
         self.move_task(id, Status::Completed)
     }
 
@@ -174,16 +173,11 @@ impl Project {
         id: u32,
         description: Option<String>,
         priority: Option<Priority>,
-    ) -> Result<&Task, String> {
-        if description.is_none() && priority.is_none() {
-            return Err(format!(
-                "No changes requested for task #{id}. Please provide a new description or priority."
-            ));
-        }
-
+    ) -> Result<&Task, AppError> {
         let idx = self
             .find_task(id)
-            .ok_or_else(|| format!("Task {id} not found."))?;
+            .ok_or_else(|| AppError::TaskNotFound { id })?;
+
         if let Some(desc) = description {
             self.tasks[idx].description = desc;
         }
