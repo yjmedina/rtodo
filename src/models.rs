@@ -54,7 +54,7 @@ impl Project {
                 .tasks
                 .iter()
                 .find(|t| t.id == pid)
-                .ok_or_else(|| AppError::TaskNotFound { id: pid })?;
+                .ok_or(AppError::TaskNotFound { id: pid })?;
             if parent.parent_id.is_some() {
                 return Err(AppError::SubtaskDepthExceeded);
             }
