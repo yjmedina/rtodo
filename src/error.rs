@@ -22,4 +22,6 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+    #[error("Error using message channel")]
+    ThreadError,
 }

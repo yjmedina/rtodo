@@ -11,6 +11,7 @@ use rtodo::cli::{CLI, Commands};
 use rtodo::dispatch::{dispatch_project, dispatch_task};
 use rtodo::error::AppError;
 use rtodo::workspace::Workspace;
+use std::thread;
 /// Parses arguments and runs the matching command.
 ///
 /// # Errors
@@ -24,24 +25,31 @@ fn run() -> Result<(), AppError> {
 
     let cli = CLI::parse();
 
-    match cli.command {
+    let handle = match cli.command {
         Commands::Init => {
             Workspace::init()?;
+            return Ok(());
         }
         Commands::Project { command } => {
             let mut workspace = Workspace::load()?;
             dispatch_project(command, &mut workspace)?;
-            workspace.save()?;
+            // spawn a new thread to save this
+            thread::spawn(move || workspace.save())
         }
         Commands::Task { command } => {
             let mut workspace = Workspace::load()?;
             let project = workspace.active_project()?;
             dispatch_task(command, project)?;
             // this could be improved to only save the project for performance.
-            workspace.save()?;
+            //  spawn a new thread to save this
+            thread::spawn(move || workspace.save())
         }
     };
-    Ok(())
+
+    match handle.join() {
+        Ok(r) => r,
+        Err(_e) => Err(AppError::ThreadError),
+    }
 }
 
 fn main() {
