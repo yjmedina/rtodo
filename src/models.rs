@@ -194,6 +194,13 @@ impl Project {
         filtered_tasks.sort_by_key(|&t| Reverse(&t.priority));
         filtered_tasks
     }
+
+    pub fn complete_tasks(&self) -> usize {
+        self.tasks
+            .iter()
+            .filter(|p| p.status == Status::Completed)
+            .count()
+    }
 }
 
 impl fmt::Display for Project {

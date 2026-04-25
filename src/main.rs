@@ -10,6 +10,7 @@ use clap::Parser;
 use rtodo::cli::{CLI, Commands};
 use rtodo::dispatch::{dispatch_project, dispatch_task};
 use rtodo::error::AppError;
+use rtodo::tui;
 use rtodo::workspace::Workspace;
 /// Parses arguments and runs the matching command.
 ///
@@ -39,6 +40,10 @@ fn run() -> Result<(), AppError> {
             dispatch_task(command, project)?;
             // this could be improved to only save the project for performance.
             workspace.save()?;
+        }
+        Commands::Ui => {
+            let mut workspace = Workspace::load()?;
+            tui::main(&mut workspace)?;
         }
     };
     Ok(())

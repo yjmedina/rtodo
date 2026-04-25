@@ -32,6 +32,9 @@ pub enum Commands {
         #[command(subcommand)]
         command: TaskCommands,
     },
+
+    /// Start TUI
+    Ui,
 }
 
 /// Subcommands for `rtodo project`.
