@@ -44,6 +44,7 @@ fn run() -> Result<(), AppError> {
         Commands::Ui => {
             let mut workspace = Workspace::load()?;
             tui::main(&mut workspace)?;
+            workspace.save()?;
         }
     };
     Ok(())
