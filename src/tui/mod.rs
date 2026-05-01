@@ -2,6 +2,7 @@ mod app;
 mod effect;
 mod intent;
 mod overlay;
+mod project;
 mod widgets;
 mod workspace;
 
@@ -22,7 +23,7 @@ fn handle_key_event(app: &App, key: &KeyEvent) -> Option<Intent> {
 
     match app.view() {
         Screen::Workspace(s) => workspace::handle::get_intent(s, key, app.last_key),
-        Screen::Project => todo!(),
+        Screen::Project(s) => project::handle::get_intent(s, key, app.last_key),
         Screen::Task => todo!(),
     }
 }
@@ -34,7 +35,7 @@ fn get_effect(app: &mut App, intent: &Intent) -> Vec<Effect> {
 
     match app.view() {
         Screen::Workspace(s) => workspace::handle::get_effect(s, intent, app.workspace),
-        Screen::Project => todo!(),
+        Screen::Project(s) => project::handle::get_effect(s, intent, app.workspace),
         Screen::Task => todo!(),
     }
 }
@@ -43,7 +44,8 @@ fn render(frame: &mut Frame, app: &mut App) {
     let screen = app.screens.last_mut().expect("Screens can't be empty");
     match screen {
         Screen::Workspace(s) => workspace::render::render_frame(frame, s, &*app.workspace),
-        Screen::Project | Screen::Task => todo!(),
+        Screen::Project(s) => project::render::render_frame(frame, s, app.workspace),
+        Screen::Task => todo!(),
     }
     if let Some(o) = &app.overlay {
         overlay::render(frame, o);

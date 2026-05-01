@@ -1,6 +1,7 @@
 use crate::AppError;
 use crate::tui::app::{App, Screen, ScreenMode};
 use crate::tui::effect::Effect;
+use crate::tui::project::ProjectScreen;
 use crate::tui::workspace::{WorkspaceFocus, WorkspaceScreen};
 
 fn get_screen<'a>(app: &'a mut App) -> &'a mut WorkspaceScreen {
@@ -14,7 +15,12 @@ pub fn apply_effect(app: &mut App, effect: Effect) -> Result<(), AppError> {
     let project_count = app.workspace.projects.len();
     match effect {
         Effect::PushScreen => {
-            todo!()
+            let s = get_screen(app);
+            if let Some(index) = s.list.selected() {
+                let project = &app.workspace.projects[index];
+                let project_screen = ProjectScreen::new(index, project.task_count());
+                app.screens.push(Screen::Project(project_screen));
+            }
         }
         Effect::PopScreen => {
             app.should_quit = true;
@@ -97,8 +103,8 @@ pub fn apply_effect(app: &mut App, effect: Effect) -> Result<(), AppError> {
                 s.focus = WorkspaceFocus::Content;
             }
         }
-        Effect::CreateTask => {}
-        Effect::DeleteTask => {}
+        Effect::CreateTask { .. } => {}
+        Effect::DeleteTask { .. } => {}
         Effect::ToggleTaskStatus => {}
     };
 

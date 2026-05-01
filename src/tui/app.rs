@@ -1,6 +1,7 @@
 use crate::AppError;
 use crate::tui::effect::Effect;
 use crate::tui::overlay::Overlay;
+use crate::tui::project::{self, ProjectScreen};
 use crate::tui::workspace::{self, WorkspaceScreen};
 use crate::workspace::Workspace;
 use crossterm::event::KeyCode;
@@ -11,7 +12,7 @@ pub enum ScreenMode {
 
 pub enum Screen {
     Workspace(WorkspaceScreen),
-    Project,
+    Project(ProjectScreen),
     Task,
 }
 
@@ -47,6 +48,7 @@ impl<'a> App<'a> {
     pub fn apply(&mut self, effect: Effect) -> Result<(), AppError> {
         match self.view_mut() {
             Screen::Workspace(_) => workspace::apply::apply_effect(self, effect)?,
+            Screen::Project(_) => project::apply::apply_effect(self, effect)?,
             _ => {}
         }
         Ok(())

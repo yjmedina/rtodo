@@ -24,7 +24,7 @@ pub enum Effect {
     DeleteProject { pid: u32 },
 
     // Task
-    CreateTask,
-    DeleteTask,
+    CreateTask { description: String },
+    DeleteTask { tid: u32 },
     ToggleTaskStatus,
 }
