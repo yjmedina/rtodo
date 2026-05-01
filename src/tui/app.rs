@@ -1,55 +1,54 @@
-use crossterm::event::KeyCode;
-use ratatui::widgets::ListState;
-
+use crate::AppError;
+use crate::tui::effect::Effect;
+use crate::tui::overlay::Overlay;
+use crate::tui::workspace::{self, WorkspaceScreen};
 use crate::workspace::Workspace;
-
-pub enum Mode {
+use crossterm::event::KeyCode;
+pub enum ScreenMode {
     Navigate,
-    FocusingInput,
-    CreateProject,
-    Confirmation,
+    Insert(String),
 }
 
-pub enum View {
-    Workspace,
-    Project { pid: u32 },
-    Task { tid: u32 },
+pub enum Screen {
+    Workspace(WorkspaceScreen),
+    Project,
+    Task,
 }
 
 pub struct App<'a> {
-    pub view: View,
     pub workspace: &'a mut Workspace,
-    pub project_list_state: ListState,
-
-    pub draft: Option<String>,
+    pub screens: Vec<Screen>,
     pub last_key: Option<KeyCode>,
-    pub mode: Mode,
-}
-
-pub enum Action {
-    NextProject,
-    PreviousProject,
-    DeleteProject { id: u32 },
-    CreateProject,
-    UpdateProjectDraft { c: char },
-    PopProjectDraft,
-    OpenProject { id: u32 },
-    SetMode(Mode),
+    pub should_quit: bool,
+    pub overlay: Option<Overlay>,
 }
 
 impl<'a> App<'a> {
     pub fn new(workspace: &'a mut Workspace) -> Self {
-        let mut project_list_state = ListState::default();
-        if !workspace.projects.is_empty() {
-            project_list_state.select(Some(0));
-        }
+        let workspace_screen = WorkspaceScreen::new(workspace.projects.len());
+        let screens = vec![Screen::Workspace(workspace_screen)];
         App {
-            view: View::Workspace,
+            screens,
             workspace,
-            project_list_state,
-            draft: None,
             last_key: None,
-            mode: Mode::Navigate,
+            should_quit: false,
+            overlay: None,
         }
+    }
+
+    pub fn view(&self) -> &Screen {
+        self.screens.last().expect("Screens can't be empty")
+    }
+
+    pub fn view_mut(&mut self) -> &mut Screen {
+        self.screens.last_mut().expect("Screens can't be empty")
+    }
+
+    pub fn apply(&mut self, effect: Effect) -> Result<(), AppError> {
+        match self.view_mut() {
+            Screen::Workspace(_) => workspace::apply::apply_effect(self, effect)?,
+            _ => {}
+        }
+        Ok(())
     }
 }
