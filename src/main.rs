@@ -41,7 +41,8 @@ fn run() -> Result<(), AppError> {
             workspace.save()?;
         }
         Commands::Ui => {
-            eprintln!("ui command temporarily disabled during refactor");
+            let mut workspace = Workspace::load()?;
+            rtodo::tui::main(&mut workspace)?;
         }
     };
     Ok(())
