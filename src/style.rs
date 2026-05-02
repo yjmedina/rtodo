@@ -30,7 +30,7 @@
 use chrono::{DateTime, Utc};
 use owo_colors::{OwoColorize, Stream, Style};
 
-use crate::models::{Priority, Status, Task};
+use crate::models::{Priority, Status, Subtask, Task};
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
 const STDOUT: Stream = Stream::Stdout;
@@ -210,16 +210,17 @@ pub fn fmt_task_line(task: &Task, is_active: bool, desc_width: usize) -> String 
 /// ```text
 ///       ↳ [3]   Subtask detail          ·  2026-04-13
 /// ```
-pub fn fmt_sub_line(task: &Task, desc_width: usize) -> String {
-    let id = fmt_id(task.id);
-    let desc = format!("{:<width$}", task.description, width = desc_width);
-    let prio = fmt_priority_symbol(&task.priority);
-    let date = fmt_date(&task.created_at);
+pub fn fmt_sub_line(sub: &Subtask, desc_width: usize) -> String {
+    let id = fmt_id(sub.id);
+    let mark = if sub.completed { "x" } else { " " };
+    let desc = format!("{:<width$}", sub.description, width = desc_width);
+    let prio = fmt_priority_symbol(&sub.priority);
+    let date = fmt_date(&sub.created_at);
     let arrow = format!(
         "{}",
         "↳".if_supports_color(STDOUT, |v| v.style(Style::new().dimmed()))
     );
-    format!("      {} {} {}  {}  {}", arrow, id, desc, prio, date)
+    format!("      {} {} [{}] {}  {}  {}", arrow, id, mark, desc, prio, date)
 }
 
 /// Format a task as a compact single-line string for action output

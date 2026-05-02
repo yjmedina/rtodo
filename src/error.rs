@@ -12,10 +12,12 @@ pub enum AppError {
     NoActiveProject,
     #[error("task {id} not found")]
     TaskNotFound { id: u32 },
-    #[error("cannot add subtask to a subtask (max depth: 2)")]
-    SubtaskDepthExceeded,
+    #[error("subtask {subtask_id} not found in task {task_id}")]
+    SubtaskNotFound { task_id: u32, subtask_id: u32 },
     #[error("task {id} has incomplete subtasks — complete them first")]
     TaskHasIncompleteSubtasks { id: u32 },
+    #[error("invalid status transition for task {id}")]
+    InvalidStatusTransition { id: u32 },
     #[error("no active task")]
     NoActiveTask,
     #[error(transparent)]

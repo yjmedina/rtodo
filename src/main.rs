@@ -10,7 +10,6 @@ use clap::Parser;
 use rtodo::cli::{CLI, Commands};
 use rtodo::dispatch::{dispatch_project, dispatch_task};
 use rtodo::error::AppError;
-use rtodo::tui;
 use rtodo::workspace::Workspace;
 /// Parses arguments and runs the matching command.
 ///
@@ -42,9 +41,7 @@ fn run() -> Result<(), AppError> {
             workspace.save()?;
         }
         Commands::Ui => {
-            let mut workspace = Workspace::load()?;
-            tui::main(&mut workspace)?;
-            workspace.save()?;
+            eprintln!("ui command temporarily disabled during refactor");
         }
     };
     Ok(())
