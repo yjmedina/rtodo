@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use crate::AppError;
 pub use crate::models::priority::Priority;
 pub use crate::models::status::Status;
 pub use crate::models::subtask::Subtask;
-use crate::AppError;
 
 pub const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
 

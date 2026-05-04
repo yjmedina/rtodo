@@ -71,12 +71,10 @@ fn resolve_tree(app: &App, intent: &Intent) -> Vec<Effect> {
         Intent::Nav(NavIntent::Up) => vec![Effect::TreeMoveUp],
         Intent::Nav(NavIntent::Right) => vec![Effect::TreeExpandOrDescend],
         Intent::Nav(NavIntent::Left) => vec![Effect::TreeCollapseOrAscend],
-        Intent::App(AppIntent::ToggleStatus) => {
-            match app.screen.tree.cursor {
-                Some(id) => vec![Effect::ToggleStatus(id)],
-                None => Vec::new(),
-            }
-        }
+        Intent::App(AppIntent::ToggleStatus) => match app.screen.tree.cursor {
+            Some(id) => vec![Effect::ToggleStatus(id)],
+            None => Vec::new(),
+        },
         Intent::App(AppIntent::RequestDelete) => resolve_delete(app),
         Intent::Edit(EditIntent::Start(kind)) => resolve_insert_start(app, *kind),
         _ => Vec::new(),
@@ -104,9 +102,7 @@ fn resolve_insert_start(app: &App, kind: InsertKind) -> Vec<Effect> {
             // `i` on subtask = new sibling subtask under same parent.
             InsertTarget::Subtask { task: tid }
         }
-        (InsertKind::Child, Some(TreeRowId::Task(tid))) => {
-            InsertTarget::Subtask { task: tid }
-        }
+        (InsertKind::Child, Some(TreeRowId::Task(tid))) => InsertTarget::Subtask { task: tid },
         (InsertKind::Child, Some(TreeRowId::Subtask { .. })) => {
             // `I` on subtask — can't go deeper.
             return vec![Effect::ShowError(
@@ -157,10 +153,17 @@ fn resolve_submit(app: &App, draft: &super::draft::Draft) -> Vec<Effect> {
     match draft.target {
         InsertTarget::Project => vec![Effect::CreateProject { name: text }],
         InsertTarget::TaskRoot | InsertTarget::TaskSibling { .. } => {
-            vec![Effect::CreateTask { p_idx, description: text }]
+            vec![Effect::CreateTask {
+                p_idx,
+                description: text,
+            }]
         }
         InsertTarget::Subtask { task: tid } => {
-            vec![Effect::CreateSubtask { p_idx, task_id: tid, description: text }]
+            vec![Effect::CreateSubtask {
+                p_idx,
+                task_id: tid,
+                description: text,
+            }]
         }
     }
 }
@@ -176,9 +179,16 @@ fn resolve_delete(app: &App) -> Vec<Effect> {
     match app.screen.tree.cursor {
         None => Vec::new(),
 
-        Some(TreeRowId::Subtask { task: tid, sub: sid }) => {
+        Some(TreeRowId::Subtask {
+            task: tid,
+            sub: sid,
+        }) => {
             // Subtask delete is immediate (no confirm).
-            vec![Effect::DeleteSubtask { p_idx, task_id: tid, sub_id: sid }]
+            vec![Effect::DeleteSubtask {
+                p_idx,
+                task_id: tid,
+                sub_id: sid,
+            }]
         }
 
         Some(TreeRowId::Task(tid)) => {
@@ -190,7 +200,10 @@ fn resolve_delete(app: &App) -> Vec<Effect> {
                 .map(|t| t.description.as_str())
                 .unwrap_or("task");
             let prompt = format!("Delete task \"{}\"? [y/n]", name);
-            let on_confirm = Box::new(Effect::DeleteTask { p_idx, task_id: tid });
+            let on_confirm = Box::new(Effect::DeleteTask {
+                p_idx,
+                task_id: tid,
+            });
             vec![Effect::OpenOverlay(Overlay::Confirm(ConfirmOverlay {
                 prompt,
                 on_confirm,

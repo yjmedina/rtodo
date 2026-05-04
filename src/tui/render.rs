@@ -50,11 +50,9 @@ fn render_tree_pane(frame: &mut Frame, area: Rect, app: &App) {
     let p_idx = match app.screen.p_idx {
         Some(i) => i,
         None => {
-            let block = Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(pane_border_color(
-                    app.screen.focus == ProjectFocus::Tree,
-                )));
+            let block = Block::default().borders(Borders::ALL).border_style(
+                Style::default().fg(pane_border_color(app.screen.focus == ProjectFocus::Tree)),
+            );
             frame.render_widget(
                 Paragraph::new("No projects — press `i` to create one").block(block),
                 area,
@@ -69,16 +67,15 @@ fn render_tree_pane(frame: &mut Frame, area: Rect, app: &App) {
     // Draft row splice — insert into the visual row list.
     // Skip when drafting on the sidebar (target == Project): that draft
     // belongs to the sidebar pane only.
-    let (list_rows, draft_row_idx): (Vec<TreeRow>, Option<usize>) =
-        match &app.screen.mode {
-            ScreenMode::Insert(draft)
-                if !matches!(draft.target, super::draft::InsertTarget::Project) =>
-            {
-                let (rows, idx) = splice_draft(rows, draft);
-                (rows, Some(idx))
-            }
-            _ => (rows, None),
-        };
+    let (list_rows, draft_row_idx): (Vec<TreeRow>, Option<usize>) = match &app.screen.mode {
+        ScreenMode::Insert(draft)
+            if !matches!(draft.target, super::draft::InsertTarget::Project) =>
+        {
+            let (rows, idx) = splice_draft(rows, draft);
+            (rows, Some(idx))
+        }
+        _ => (rows, None),
+    };
 
     let cursor_idx = app
         .screen
@@ -115,10 +112,7 @@ fn render_tree_pane(frame: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-fn splice_draft(
-    rows: Vec<TreeRow>,
-    draft: &super::draft::Draft,
-) -> (Vec<TreeRow>, usize) {
+fn splice_draft(rows: Vec<TreeRow>, draft: &super::draft::Draft) -> (Vec<TreeRow>, usize) {
     use super::draft::InsertTarget;
     use super::tree::RowKind;
 
@@ -129,7 +123,9 @@ fn splice_draft(
             _ => 0,
         },
         last_in_group: true,
-        kind: RowKind::Drafting { text: draft.text.clone() },
+        kind: RowKind::Drafting {
+            text: draft.text.clone(),
+        },
     };
 
     let insert_after = match draft.target {
@@ -172,13 +168,14 @@ fn format_row<'a>(
 
         RowKind::Subtask => {
             let id = match row.id {
-                TreeRowId::Subtask { task: tid, sub: sid } => {
-                    project
-                        .tasks
-                        .iter()
-                        .find(|t| t.id == tid)
-                        .and_then(|t| t.subtasks.iter().find(|s| s.id == sid))
-                }
+                TreeRowId::Subtask {
+                    task: tid,
+                    sub: sid,
+                } => project
+                    .tasks
+                    .iter()
+                    .find(|t| t.id == tid)
+                    .and_then(|t| t.subtasks.iter().find(|s| s.id == sid)),
                 _ => None,
             };
             let (checkbox, desc, prio_span) = match id {
@@ -241,7 +238,11 @@ fn branch_glyph(row: &TreeRow) -> &'static str {
     if row.depth == 0 {
         return "";
     }
-    if row.last_in_group { "└─" } else { "├─" }
+    if row.last_in_group {
+        "└─"
+    } else {
+        "├─"
+    }
 }
 
 fn status_span(status: &Status) -> Span<'static> {
@@ -278,7 +279,12 @@ fn render_overlay(frame: &mut Frame, overlay: &Overlay, area: Rect) {
     let height = 3u16;
     let x = area.x + area.width.saturating_sub(width) / 2;
     let y = area.y + area.height.saturating_sub(height) / 2;
-    let popup = Rect { x, y, width, height };
+    let popup = Rect {
+        x,
+        y,
+        width,
+        height,
+    };
 
     frame.render_widget(Clear, popup);
     frame.render_widget(
@@ -304,7 +310,9 @@ fn render_help(frame: &mut Frame, area: Rect, app: &App) {
     } else {
         let hint = match app.screen.focus {
             ProjectFocus::Sidebar => " j/k select  ·  Enter open  ·  i new project  ·  Tab tree",
-            ProjectFocus::Tree => " j/k move  ·  l/h expand  ·  space toggle  ·  i new  ·  I child  ·  dd delete  ·  Tab sidebar",
+            ProjectFocus::Tree => {
+                " j/k move  ·  l/h expand  ·  space toggle  ·  i new  ·  I child  ·  dd delete  ·  Tab sidebar"
+            }
         };
         Span::styled(hint, style)
     };

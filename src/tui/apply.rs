@@ -31,21 +31,18 @@ impl App<'_> {
             Effect::SelectNextProject => {
                 let len = self.workspace.projects.len();
                 if len > 0 {
-                    self.screen.sidebar_cursor =
-                        (self.screen.sidebar_cursor + 1).min(len - 1);
+                    self.screen.sidebar_cursor = (self.screen.sidebar_cursor + 1).min(len - 1);
                 }
             }
             Effect::SelectPrevProject => {
-                self.screen.sidebar_cursor =
-                    self.screen.sidebar_cursor.saturating_sub(1);
+                self.screen.sidebar_cursor = self.screen.sidebar_cursor.saturating_sub(1);
             }
             Effect::SelectProject { p_idx } => {
                 self.screen.p_idx = Some(p_idx);
                 // Match boot behavior: land cursor on the first task so the
                 // user sees a highlight without having to press `j`.
                 let project = &self.workspace.projects[p_idx];
-                let initial_cursor =
-                    project.tasks.first().map(|t| TreeRowId::Task(t.id));
+                let initial_cursor = project.tasks.first().map(|t| TreeRowId::Task(t.id));
                 let pid = project.id;
                 self.screen.tree = TreeState {
                     expanded: std::collections::HashSet::new(),
@@ -60,8 +57,7 @@ impl App<'_> {
             Effect::TreeMoveDown => {
                 if let Some(p_idx) = self.screen.p_idx {
                     let project = &self.workspace.projects[p_idx];
-                    let rows =
-                        super::tree::flatten(project, &self.screen.tree.expanded);
+                    let rows = super::tree::flatten(project, &self.screen.tree.expanded);
                     if self.screen.tree.cursor.is_none() {
                         // First keypress — land on the first row.
                         self.screen.tree.cursor = rows.first().map(|r| r.id);
@@ -81,8 +77,7 @@ impl App<'_> {
             Effect::TreeMoveUp => {
                 if let Some(p_idx) = self.screen.p_idx {
                     let project = &self.workspace.projects[p_idx];
-                    let rows =
-                        super::tree::flatten(project, &self.screen.tree.expanded);
+                    let rows = super::tree::flatten(project, &self.screen.tree.expanded);
                     if self.screen.tree.cursor.is_none() {
                         self.screen.tree.cursor = rows.last().map(|r| r.id);
                     } else {
@@ -120,11 +115,10 @@ impl App<'_> {
 
                     if self.screen.tree.expanded.contains(&tid) {
                         // Already expanded — move cursor to first subtask.
-                        let rows =
-                            super::tree::flatten(project, &self.screen.tree.expanded);
-                        if let Some(first_sub) = rows.iter().find(|r| {
-                            matches!(r.id, TreeRowId::Subtask { task, .. } if task == tid)
-                        }) {
+                        let rows = super::tree::flatten(project, &self.screen.tree.expanded);
+                        if let Some(first_sub) = rows.iter().find(
+                            |r| matches!(r.id, TreeRowId::Subtask { task, .. } if task == tid),
+                        ) {
                             self.screen.tree.cursor = Some(first_sub.id);
                         }
                     } else {
@@ -175,11 +169,8 @@ impl App<'_> {
             // apply it. Only consume the overlay if it's a Confirm so future
             // overlay variants (Help, Picker, ...) survive the pump.
             Effect::ConfirmYes => {
-                if matches!(
-                    self.overlay,
-                    Some(super::overlay::Overlay::Confirm(_))
-                ) && let Some(super::overlay::Overlay::Confirm(c)) =
-                    self.overlay.take()
+                if matches!(self.overlay, Some(super::overlay::Overlay::Confirm(_)))
+                    && let Some(super::overlay::Overlay::Confirm(c)) = self.overlay.take()
                 {
                     self.apply(*c.on_confirm)?;
                 }
@@ -236,7 +227,11 @@ impl App<'_> {
                 self.workspace.save()?;
             }
 
-            Effect::CreateSubtask { p_idx, task_id, description } => {
+            Effect::CreateSubtask {
+                p_idx,
+                task_id,
+                description,
+            } => {
                 let sub_id = {
                     let project = &mut self.workspace.projects[p_idx];
                     let s = project.add_subtask(task_id, description, Priority::Medium)?;
@@ -244,13 +239,19 @@ impl App<'_> {
                 };
                 // Auto-expand the parent task.
                 self.screen.tree.expanded.insert(task_id);
-                self.screen.tree.cursor =
-                    Some(TreeRowId::Subtask { task: task_id, sub: sub_id });
+                self.screen.tree.cursor = Some(TreeRowId::Subtask {
+                    task: task_id,
+                    sub: sub_id,
+                });
                 self.screen.mode = ScreenMode::Navigate;
                 self.workspace.save()?;
             }
 
-            Effect::DeleteSubtask { p_idx, task_id, sub_id } => {
+            Effect::DeleteSubtask {
+                p_idx,
+                task_id,
+                sub_id,
+            } => {
                 self.workspace.projects[p_idx].delete_subtask(task_id, sub_id)?;
                 // Move cursor back to parent task.
                 self.screen.tree.cursor = Some(TreeRowId::Task(task_id));
@@ -263,7 +264,10 @@ impl App<'_> {
                     None => return Ok(()),
                 };
                 match row_id {
-                    TreeRowId::Subtask { task: tid, sub: sid } => {
+                    TreeRowId::Subtask {
+                        task: tid,
+                        sub: sid,
+                    } => {
                         let project = &mut self.workspace.projects[p_idx];
                         let task = project.get_task_mut(tid)?;
                         let sub_idx = task.get_subtask(sid)?;

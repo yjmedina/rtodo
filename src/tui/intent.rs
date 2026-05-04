@@ -13,7 +13,6 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use super::app::{App, ProjectFocus, ScreenMode};
 
-
 #[derive(Debug)]
 pub enum Intent {
     Nav(NavIntent),

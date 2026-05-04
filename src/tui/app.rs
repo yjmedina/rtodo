@@ -68,7 +68,10 @@ impl ProjectScreen {
         // Seed cursor on first task of the active project so the user never
         // has to press `j` just to see a selection highlight.
         let initial_cursor = p_idx.and_then(|i| {
-            workspace.projects[i].tasks.first().map(|t| TreeRowId::Task(t.id))
+            workspace.projects[i]
+                .tasks
+                .first()
+                .map(|t| TreeRowId::Task(t.id))
         });
         Self {
             p_idx,

@@ -111,8 +111,11 @@ impl Project {
     }
 
     pub fn tasks_with_status(&self, status: &Status) -> Vec<&Task> {
-        let mut filtered: Vec<&Task> =
-            self.tasks.iter().filter(|t| t.status() == *status).collect();
+        let mut filtered: Vec<&Task> = self
+            .tasks
+            .iter()
+            .filter(|t| t.status() == *status)
+            .collect();
         filtered.sort_by_key(|t| Reverse(&t.priority));
         filtered
     }
@@ -193,8 +196,12 @@ mod tests {
     fn delete_task_owns_subtasks() {
         let mut project = get_project();
         project.add_task(String::from("parent"), Priority::Low);
-        project.add_subtask(0, String::from("a"), Priority::Low).unwrap();
-        project.add_subtask(0, String::from("b"), Priority::Low).unwrap();
+        project
+            .add_subtask(0, String::from("a"), Priority::Low)
+            .unwrap();
+        project
+            .add_subtask(0, String::from("b"), Priority::Low)
+            .unwrap();
         let removed = project.delete_task(0).unwrap();
         assert_eq!(removed.subtasks.len(), 2);
         assert_eq!(project.task_count(), 0);
@@ -227,7 +234,9 @@ mod tests {
     fn complete_subtask_propagates_to_task_status() {
         let mut project = get_project();
         project.add_task(String::from("parent"), Priority::Low);
-        project.add_subtask(0, String::from("a"), Priority::Low).unwrap();
+        project
+            .add_subtask(0, String::from("a"), Priority::Low)
+            .unwrap();
         project.complete_subtask(0, 0).unwrap();
         let task = &project.tasks[0];
         assert_eq!(task.status(), Status::Completed);

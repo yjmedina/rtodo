@@ -40,10 +40,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     {
         let row = ListItem::new(Line::from(vec![
             Span::raw(" "),
-            Span::styled(
-                format!("{}▌", d.text),
-                Style::default().fg(Color::Yellow),
-            ),
+            Span::styled(format!("{}▌", d.text), Style::default().fg(Color::Yellow)),
         ]));
         draft_idx = Some(items.len());
         items.push(row);
@@ -59,7 +56,11 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         if app.workspace.projects.is_empty() {
             None
         } else {
-            Some(app.screen.sidebar_cursor.min(app.workspace.projects.len() - 1))
+            Some(
+                app.screen
+                    .sidebar_cursor
+                    .min(app.workspace.projects.len() - 1),
+            )
         }
     });
     state.select(selected);

@@ -220,7 +220,10 @@ pub fn fmt_sub_line(sub: &Subtask, desc_width: usize) -> String {
         "{}",
         "↳".if_supports_color(STDOUT, |v| v.style(Style::new().dimmed()))
     );
-    format!("      {} {} [{}] {}  {}  {}", arrow, id, mark, desc, prio, date)
+    format!(
+        "      {} {} [{}] {}  {}  {}",
+        arrow, id, mark, desc, prio, date
+    )
 }
 
 /// Format a task as a compact single-line string for action output

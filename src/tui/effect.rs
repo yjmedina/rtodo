@@ -18,7 +18,9 @@ pub enum Effect {
     NextFocus,
     SelectNextProject,
     SelectPrevProject,
-    SelectProject { p_idx: usize },
+    SelectProject {
+        p_idx: usize,
+    },
     TreeMoveDown,
     TreeMoveUp,
     /// `l`: expand on collapsed parent / drill on expanded parent / no-op on leaf.
