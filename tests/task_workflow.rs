@@ -3,12 +3,8 @@ use rtodo::models::{Priority, Project};
 #[test]
 fn find_activate_task_and_simulate_completed() {
     let mut project = Project::new(0, String::from("A testing project"));
-    project
-        .add_task(String::from("My first task"), Priority::Low, None)
-        .unwrap();
-    project
-        .add_task(String::from("My Second task"), Priority::Low, None)
-        .unwrap();
+    project.add_task(String::from("My first task"), Priority::Low);
+    project.add_task(String::from("My Second task"), Priority::Low);
     project.active_task_id = Some(1);
     let task = project
         .active_task()

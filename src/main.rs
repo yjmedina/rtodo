@@ -40,6 +40,10 @@ fn run() -> Result<(), AppError> {
             // this could be improved to only save the project for performance.
             workspace.save()?;
         }
+        Commands::Ui => {
+            let mut workspace = Workspace::load()?;
+            rtodo::tui::main(&mut workspace)?;
+        }
     };
     Ok(())
 }
