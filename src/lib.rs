@@ -15,7 +15,10 @@
 
 pub mod cli;
 pub mod dispatch;
+pub mod error;
+pub use error::AppError;
 pub mod models;
 pub mod style;
+pub mod tui;
 pub mod ui;
 pub mod workspace;

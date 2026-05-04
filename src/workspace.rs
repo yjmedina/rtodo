@@ -4,17 +4,16 @@
 //! tree. [`Workspace::init`] creates it in the current directory;
 //! [`Workspace::load`] walks parent directories to find the nearest one.
 
+use crate::error::AppError;
 use crate::models::Project;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::env;
-use std::error;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::{self, PathBuf};
 
-type DynError = Box<dyn std::error::Error>;
 const STATE_JSON_PATH: &str = ".rtodo/state.json";
 
 /// Persistent state for a single `rtodo` workspace.
@@ -43,7 +42,7 @@ impl Workspace {
     }
 
     /// Deserialize a workspace from `path` and restore the skipped `path` field.
-    fn load_from_path(path: &path::Path) -> Result<Workspace, Box<dyn error::Error>> {
+    fn load_from_path(path: &path::Path) -> Result<Workspace, AppError> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
         let mut workspace: Workspace = serde_json::from_reader(reader)?;
@@ -56,7 +55,7 @@ impl Workspace {
     ///
     /// # Errors
     /// Returns `Err` if the file cannot be created or written.
-    pub fn save(&self) -> Result<(), Box<dyn error::Error>> {
+    pub fn save(&self) -> Result<(), AppError> {
         let file = File::create(&self.path)?;
         let writer = BufWriter::new(file);
         serde_json::to_writer_pretty(writer, self)?;
@@ -65,31 +64,34 @@ impl Workspace {
 
     /// Return the index of the project with `id` within `self.projects`, or
     /// `None` if not found.
-    pub fn find_project(&self, id: u32) -> Option<usize> {
-        self.projects.iter().position(|p| p.id == id)
+    pub fn get_project(&self, id: u32) -> Result<usize, AppError> {
+        self.projects
+            .iter()
+            .position(|p| p.id == id)
+            .ok_or(AppError::ProjectNotFound { id })
     }
 
     /// Return a mutable reference to the active project, or `None` if no
     /// project is currently active.
-    pub fn active_project(&mut self) -> Option<&mut Project> {
-        let idx = self.find_project(self.active_project_id?)?;
-        Some(&mut self.projects[idx])
+    pub fn active_project(&mut self) -> Result<&mut Project, AppError> {
+        let idx = self
+            .get_project(self.active_project_id.ok_or(AppError::NoActiveProject)?)
+            .map_err(|_| AppError::NoActiveProject)?;
+        Ok(&mut self.projects[idx])
     }
 
     /// Set project `id` as the active project.
     ///
     /// # Errors
     /// Returns `Err` if no project with `id` exists in the workspace.
-    pub fn set_active_project(&mut self, id: u32) -> Result<&mut Project, String> {
-        let idx = self
-            .find_project(id)
-            .ok_or_else(|| format!("Project {id} not found."))?;
+    pub fn set_active_project(&mut self, id: u32) -> Result<&mut Project, AppError> {
+        let idx = self.get_project(id)?;
         self.active_project_id = Some(id);
         Ok(&mut self.projects[idx])
     }
 
     /// Clear the active project selection.
-    pub fn unset_active_project(&mut self) {
+    pub fn clear_active_project(&mut self) {
         self.active_project_id = None;
     }
 
@@ -99,11 +101,11 @@ impl Workspace {
     ///
     /// # Errors
     /// Returns `Err` if the workspace already exists or the file cannot be created.
-    pub fn init() -> Result<Self, DynError> {
+    pub fn init() -> Result<Self, AppError> {
         let current_dir = std::env::current_dir()?;
         let path = current_dir.join(STATE_JSON_PATH);
         if path.is_file() {
-            return Err("Workspace already initialized in this directory.".into());
+            return Err(AppError::WorkspaceAlreadyInit);
         }
 
         let parent_dir = path
@@ -141,9 +143,8 @@ impl Workspace {
     /// # Errors
     /// Returns `Err` if no `.rtodo/state.json` is found in the directory tree
     /// or the file cannot be parsed.
-    pub fn load() -> Result<Self, DynError> {
-        let p = Self::find_path()
-            .ok_or("No workspace found. Run `rtodo init` in your project directory.")?;
+    pub fn load() -> Result<Self, AppError> {
+        let p = Self::find_path().ok_or(AppError::WorkspaceNotFound)?;
         Self::load_from_path(&p)
     }
 
@@ -156,10 +157,8 @@ impl Workspace {
     }
 
     /// Delete a project
-    pub fn delete_project(&mut self, id: u32) -> Result<Project, String> {
-        let idx = self
-            .find_project(id)
-            .ok_or_else(|| format!("Project {id} not found"))?;
+    pub fn delete_project(&mut self, id: u32) -> Result<Project, AppError> {
+        let idx = self.get_project(id)?;
         // reset active project id
         if self.active_project_id == Some(id) {
             self.active_project_id = None
@@ -168,10 +167,8 @@ impl Workspace {
     }
 
     /// Delete a project
-    pub fn edit_project(&mut self, id: u32, name: String) -> Result<&Project, String> {
-        let idx = self
-            .find_project(id)
-            .ok_or_else(|| format!("Project {id} not found"))?;
+    pub fn edit_project(&mut self, id: u32, name: String) -> Result<&Project, AppError> {
+        let idx = self.get_project(id)?;
         self.projects[idx].name = name;
         Ok(&self.projects[idx])
     }

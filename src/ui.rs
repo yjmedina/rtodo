@@ -4,31 +4,20 @@
 //! [`crate::models`] and [`crate::workspace`] deliberately stay plain — they
 //! expose plain-text `Display` impls suitable for debugging and testing.
 //! Everything visual lives here.
-//!
-//! # Design: View structs + `Display`
-//!
-//! Each "view" is a lightweight struct that borrows the data it needs to render.
-//! Implementing [`std::fmt::Display`] instead of returning `String` gives three
-//! benefits:
-//!
+
 use std::cmp::Reverse;
 use std::fmt;
 
 use owo_colors::{OwoColorize, Stream, Style};
 
-use crate::models::{ALL_STATUSES, Project, Status, Task};
+use crate::models::{Project, Status, Subtask, Task};
 use crate::style;
 use crate::workspace::Workspace;
 
 // ── Task list view ────────────────────────────────────────────────────────────
 
-/// A view over a [`Project`]'s task list, ready for colorized terminal display.
-///
-/// # Example
-/// ```ignore
-/// println!("{}", TaskSummaryView::new(project, None));
-/// println!("{}", TaskSummaryView::new(project, Some(&[Status::New])));
-/// ```
+const ALL_STATUSES: &[Status] = &[Status::InProgress, Status::New, Status::Completed];
+
 pub struct TaskSummaryView<'a> {
     project: &'a Project,
     filter: Option<&'a [Status]>,
@@ -54,23 +43,35 @@ impl fmt::Display for TaskSummaryView<'_> {
     }
 }
 
-/// Returns the max task description length in the project, used for column alignment.
-/// Subtasks are included so their column aligns with top-level tasks.
 fn task_desc_width(project: &Project) -> usize {
-    project
+    let task_max = project.tasks.iter().map(|t| t.description.len()).max();
+    let sub_max = project
         .tasks
         .iter()
-        .map(|t| t.description.len())
+        .flat_map(|t| t.subtasks.iter())
+        .map(|s| s.description.len())
+        .max();
+    task_max
+        .into_iter()
+        .chain(sub_max)
         .max()
         .unwrap_or(10)
         .max(10)
 }
 
-/// Returns top-level tasks that belong in `section_status`, sorted by priority descending.
-///
-/// When `is_filtered`, a parent is included if it matches *or* any of its subtasks match —
-/// so the parent is visible as context even when its own status differs.
-fn top_level_for_section<'a>(
+/// `Status::InProgress` for a subtask is mapped from `completed=false` *only*
+/// when the parent task is in-progress (i.e. has at least one done sibling).
+/// For section filtering we treat subtask state as `Completed` if `completed`,
+/// else `New`.
+fn subtask_status(sub: &Subtask) -> Status {
+    if sub.completed {
+        Status::Completed
+    } else {
+        Status::New
+    }
+}
+
+fn tasks_for_section<'a>(
     project: &'a Project,
     section_status: &Status,
     is_filtered: bool,
@@ -78,16 +79,14 @@ fn top_level_for_section<'a>(
     let mut tasks: Vec<&Task> = project
         .tasks
         .iter()
-        .filter(|t| t.parent_id.is_none())
         .filter(|t| {
             if is_filtered {
-                t.status == *section_status
-                    || project
-                        .subtasks_of(t.id)
+                t.status() == *section_status
+                    || t.subtasks
                         .iter()
-                        .any(|s| s.status == *section_status)
+                        .any(|s| subtask_status(s) == *section_status)
             } else {
-                t.status == *section_status
+                t.status() == *section_status
             }
         })
         .collect();
@@ -96,8 +95,6 @@ fn top_level_for_section<'a>(
     tasks
 }
 
-/// Writes one status section: header, task rows (or an "(empty)" notice), and a trailing
-/// blank line.
 fn write_section(
     f: &mut fmt::Formatter<'_>,
     project: &Project,
@@ -107,16 +104,16 @@ fn write_section(
 ) -> fmt::Result {
     writeln!(f, "{}", style::fmt_status_header(section_status))?;
 
-    let top_level = top_level_for_section(project, section_status, is_filtered);
+    let tasks = tasks_for_section(project, section_status, is_filtered);
 
-    if top_level.is_empty() {
+    if tasks.is_empty() {
         writeln!(
             f,
             "  {}",
             "(empty)".if_supports_color(Stream::Stdout, |v| v.dimmed())
         )?;
     } else {
-        for task in top_level {
+        for task in tasks {
             write_task(f, project, task, section_status, is_filtered, desc_width)?;
         }
     }
@@ -124,7 +121,6 @@ fn write_section(
     writeln!(f) // blank line between sections
 }
 
-/// Writes a single task row and, when it has subtasks, the progress badge and subtask rows.
 fn write_task(
     f: &mut fmt::Formatter<'_>,
     project: &Project,
@@ -133,60 +129,42 @@ fn write_task(
     is_filtered: bool,
     desc_width: usize,
 ) -> fmt::Result {
-    let subtasks = project.subtasks_of(task.id);
     let is_active = Some(task.id) == project.active_task_id;
     let line = style::fmt_task_line(task, is_active, desc_width);
 
-    if subtasks.is_empty() {
+    if task.subtasks.is_empty() {
         return writeln!(f, "{}", line);
     }
 
-    let done = subtasks
-        .iter()
-        .filter(|s| s.status == Status::Completed)
-        .count();
-    let total = subtasks.len();
+    let done = task.subtasks.iter().filter(|s| s.completed).count();
+    let total = task.subtasks.len();
     let badge = format!(
         "{}",
         format!("[{done}/{total}]").if_supports_color(Stream::Stdout, |v| v.cyan())
     );
     writeln!(f, "{}  {}", line, badge)?;
 
-    write_subtasks(f, subtasks, section_status, is_filtered, desc_width)
+    write_subtasks(f, &task.subtasks, section_status, is_filtered, desc_width)
 }
 
-/// Writes the subtask rows for a parent, applying the status filter when active.
 fn write_subtasks(
     f: &mut fmt::Formatter<'_>,
-    subtasks: Vec<&Task>,
+    subtasks: &[Subtask],
     section_status: &Status,
     is_filtered: bool,
     desc_width: usize,
 ) -> fmt::Result {
-    let visible: Vec<&Task> = if is_filtered {
-        subtasks
-            .into_iter()
-            .filter(|s| s.status == *section_status)
-            .collect()
-    } else {
-        subtasks
-    };
-
-    for sub in visible {
+    for sub in subtasks {
+        if is_filtered && subtask_status(sub) != *section_status {
+            continue;
+        }
         writeln!(f, "{}", style::fmt_sub_line(sub, desc_width))?;
     }
-
     Ok(())
 }
 
 // ── Project list view ─────────────────────────────────────────────────────────
 
-/// A view over a [`Workspace`]'s project list, ready for colorized terminal display.
-///
-/// # Example
-/// ```ignore
-/// println!("{}", ProjectListView::new(&workspace));
-/// ```
 pub struct ProjectListView<'a> {
     workspace: &'a Workspace,
 }
@@ -210,7 +188,6 @@ impl fmt::Display for ProjectListView<'_> {
             );
         }
 
-        // Align project names in a consistent column.
         let name_width = workspace
             .projects
             .iter()
